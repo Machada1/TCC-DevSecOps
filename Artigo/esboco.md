@@ -48,7 +48,7 @@ Dessa forma, será possível avaliar como cada ferramenta se integra ao ciclo de
 
 ### 4. Execução e coleta de resultados  
 Será implementado um **aplicativo simples** (como uma aplicação web em Python ou Node.js) para servir como base de teste.  
-Esse aplicativo passará por todo o ciclo do pipeline, incluindo build, análise de segurança, e deploy automatizado no GKE provisionado via Terraform.  
+Esse aplicativo passará por todo o ciclo do pipeline, incluindo build, testes, análise de segurança, e deploy automatizado no GKE provisionado via Terraform.  
 
 Durante a execução, serão observados:  
 
