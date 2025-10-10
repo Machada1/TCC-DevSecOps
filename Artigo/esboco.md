@@ -22,7 +22,7 @@ A pesquisa seguirá uma **abordagem experimental e aplicada**, com foco na **imp
 As etapas metodológicas incluem:  
 
 ### 1. Revisão bibliográfica  
-Levantamento e análise de artigos acadêmicos e publicações técnicas disponíveis na base **IEEE Xplore**, incluindo:  
+Levantamento e análise de artigos acadêmicos e publicações técnicas disponíveis na base **IEEE**, incluindo:  
 
 - *“Implementing and Automating Security Scanning to a DevSecOps CI/CD Pipeline”* (IEEE, documento 10235015);  
 - *“Integrating Security with DevSecOps: Techniques and Challenges”* (IEEE, documento 9105789);  
