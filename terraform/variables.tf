@@ -32,3 +32,13 @@ variable "artifact_repo_name" {
   type        = string
   default     = "devsecops-repo"
 }
+
+variable "github_owner" {
+  description = "Dono do repositório GitHub"
+  type        = string
+}
+
+variable "github_repo" {
+  description = "Nome do repositório GitHub conectado ao Cloud Build"
+  type        = string
+}
