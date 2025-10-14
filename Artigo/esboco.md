@@ -37,10 +37,10 @@ O provisionamento do ambiente será realizado com **Terraform**, garantindo que 
 
 O pipeline será projetado para integrar práticas automatizadas de segurança nas etapas de build, teste e deploy, utilizando ferramentas complementares:  
 
-- **SAST (Static Application Security Testing):** SonarQube ou Semgrep;  
+- **SAST (Static Application Security Testing):** Semgrep;  
 - **DAST (Dynamic Application Security Testing):** OWASP ZAP;  
 - **SCA (Software Composition Analysis):** Dependency-Check;  
-- **IaC Scanning:** Checkov ou Terrascan.  
+- **IaC Scanning:** Checkov.  
 
 As imagens de contêiner serão armazenadas no **Artifact Registry**, e o deploy será automatizado em um cluster **Google Kubernetes Engine (GKE)** provisionado via Terraform.  
 Dessa forma, será possível avaliar como cada ferramenta se integra ao ciclo de desenvolvimento e como o Cloud Build pode automatizar a execução dessas verificações de segurança.  
