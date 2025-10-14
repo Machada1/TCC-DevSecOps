@@ -26,3 +26,9 @@ variable "cluster_name" {
   type        = string
   default     = "devsecops-cluster"
 }
+
+variable "artifact_repo_name" {
+  description = "Nome do repositório no Artifact Registry"
+  type        = string
+  default     = "devsecops-repo"
+}
