@@ -16,6 +16,7 @@ spec:
     spec:
       containers:
         - name: devsecops-app
+        #Substituir quando subir o registry
           image: us-central1-docker.pkg.dev/PROJECT_ID/artifact-repo/devsecops-app:latest
           ports:
             - containerPort: 8080

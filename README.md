@@ -109,7 +109,6 @@ substitutions:
 * Acesso ao Artifact Registry
 * Escrita no bucket GCS
 
----
 
 ### Executar o pipeline
 
@@ -138,8 +137,6 @@ gcloud builds list
 gcloud builds log <BUILD_ID>
 ```
 
----
-
 ### Avaliação dos resultados
 
 1. Acesse o bucket GCS para conferir relatórios:
@@ -162,7 +159,6 @@ gsutil ls gs://devsecops-reports/<BUILD_ID>/
 
 4. Repita o build sempre que desejar testar alterações na aplicação ou na configuração do pipeline. Cada build gera um novo diretório no bucket para manter histórico completo.
 
----
 
 ### Observações
 
