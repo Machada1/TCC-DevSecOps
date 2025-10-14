@@ -1,0 +1,28 @@
+variable "project_id" {
+  description = "ID do projeto no GCP"
+  type        = string
+}
+
+variable "region" {
+  description = "Região do GCP"
+  type        = string
+  default     = "us-central1"
+}
+
+variable "zone" {
+  description = "Zona do GCP"
+  type        = string
+  default     = "us-central1-a"
+}
+
+variable "network_name" {
+  description = "Nome da VPC"
+  type        = string
+  default     = "devsecops-vpc"
+}
+
+variable "cluster_name" {
+  description = "Nome do cluster GKE"
+  type        = string
+  default     = "devsecops-cluster"
+}
