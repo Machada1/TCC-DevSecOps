@@ -42,3 +42,4 @@ variable "github_repo" {
   description = "Nome do repositório GitHub conectado ao Cloud Build"
   type        = string
 }
+

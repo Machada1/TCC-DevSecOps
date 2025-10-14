@@ -1,52 +1,47 @@
 # cloudbuild.yaml
-# Pipeline: build -> push -> deploy -> 
+# Pipeline completo: build -> push -> segurança -> deploy -> teste dinâmico
 
 substitutions:
-  _ARTIFACT_REPO: "devsecops-repo"    
-  _REGION: "us-central1"              
-  _PROJECT_ID: "my-gcp-project"       #trocar quando subir o projeto
+  _ARTIFACT_REPO: "devsecops-repo"
+  _REGION: "us-central1"
+  _PROJECT_ID: "my-gcp-project"    # substituir pelo ID real do projeto
+  _CLUSTER_NAME: "devsecops-cluster"
+  _APP_NAME: "devsecops-app"
+  _DEPLOYMENT_NAME: "devsecops-app"
+  _REPORT_BUCKET: "gs://devsecops-reports"   # bucket opcional p/ salvar relatórios
 
 steps:
-  # 1. Build da imagem Docker
+  # 1 Build da imagem Docker
   - name: 'gcr.io/cloud-builders/docker'
     id: 'build'
     args:
       - 'build'
       - '-t'
-      - '${_REGION}-docker.pkg.dev/${_PROJECT_ID}/${_ARTIFACT_REPO}/devsecops-app:$SHORT_SHA'
+      - '${_REGION}-docker.pkg.dev/${_PROJECT_ID}/${_ARTIFACT_REPO}/${_APP_NAME}:$SHORT_SHA'
       - '.'
 
-  # 2. Push da imagem para o Artifact Registry
+  # 2 Push da imagem para o Artifact Registry
   - name: 'gcr.io/cloud-builders/docker'
     id: 'push'
     args:
       - 'push'
-      - '${_REGION}-docker.pkg.dev/${_PROJECT_ID}/${_ARTIFACT_REPO}/devsecops-app:$SHORT_SHA'
+      - '${_REGION}-docker.pkg.dev/${_PROJECT_ID}/${_ARTIFACT_REPO}/${_APP_NAME}:$SHORT_SHA'
 
-  # 3. Atualizar a imagem do Deployment no GKE
-  - name: 'gcr.io/cloud-builders/kubectl'
-    id: 'deploy'
-    entrypoint: 'bash'
-    args:
-      - '-c'
-      - |
-        # Obter credenciais do cluster
-        gcloud container clusters get-credentials devsecops-cluster --region ${_REGION} --project ${_PROJECT_ID}
-        # Atualizar imagem no deployment
-        kubectl set image deployment/devsecops-app devsecops-app=${_REGION}-docker.pkg.dev/${_PROJECT_ID}/${_ARTIFACT_REPO}/devsecops-app:$SHORT_SHA --record
-
-  # 4. SAST com Semgrep
+  # 3 SAST com Semgrep (análise estática)
   - name: 'returntocorp/semgrep:latest'
     id: 'semgrep'
     entrypoint: 'semgrep'
     args:
       - '--config'
       - 'auto'
+      - '--json'
+      - '--output'
+      - '/workspace/reports/semgrep-report.json'
       - '.'
     waitFor:
-      - 'push'
+      - 'build'
 
-  # 5. SCA com OWASP Dependency-Check (gera relatório)
+  # 4 SCA com OWASP Dependency-Check (análise de dependências)
   - name: 'owasp/dependency-check'
     id: 'dependency-check'
     args:
@@ -54,8 +49,80 @@ steps:
       - '.'
       - '--format'
       - 'ALL'
+      - '--out'
+      - '/workspace/reports/dependency-check'
+    waitFor:
+      - 'build'
+
+  # 5 IaC Scan (Terraform) com Checkov
+  - name: 'bridgecrew/checkov:latest'
+    id: 'checkov'
+    args:
+      - '-d'
+      - './infra'
+      - '-o'
+      - 'json'
+      - '--output-file-path'
+      - '/workspace/reports/checkov-report.json'
+    waitFor:
+      - 'build'
+
+  # 6 Container Scan (Trivy)
+  - name: 'aquasec/trivy'
+    id: 'trivy'
+    args:
+      - 'image'
+      - '--format'
+      - 'json'
+      - '--output'
+      - '/workspace/reports/trivy-report.json'
+      - '${_REGION}-docker.pkg.dev/${_PROJECT_ID}/${_ARTIFACT_REPO}/${_APP_NAME}:$SHORT_SHA'
     waitFor:
       - 'push'
 
+  # 7 Deploy no GKE
+  - name: 'gcr.io/cloud-builders/kubectl'
+    id: 'deploy'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        gcloud container clusters get-credentials ${_CLUSTER_NAME} --region ${_REGION} --project ${_PROJECT_ID}
+        kubectl set image deployment/${_DEPLOYMENT_NAME} ${_APP_NAME}=${_REGION}-docker.pkg.dev/${_PROJECT_ID}/${_ARTIFACT_REPO}/${_APP_NAME}:$SHORT_SHA --record
+    waitFor:
+      - 'trivy'
+
+  # 8 DAST com OWASP ZAP (testes dinâmicos de segurança)
+  - name: 'owasp/zap2docker-stable'
+    id: 'zap-scan'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        zap-baseline.py -t http://${_APP_NAME}.default.svc.cluster.local:8080 -r /workspace/reports/zap-report.html || true
+    waitFor:
+      - 'deploy'
+
+  # 9 Upload dos relatórios de segurança para bucket GCS
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'upload-reports'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        if [ -d "/workspace/reports" ]; then
+          gsutil -m cp -r /workspace/reports/* ${_REPORT_BUCKET}/$BUILD_ID/
+        else
+          echo "Nenhum relatório gerado."
+        fi
+    waitFor:
+      - 'zap-scan'
+
 images:
-  - '${_REGION}-docker.pkg.dev/${_PROJECT_ID}/${_ARTIFACT_REPO}/devsecops-app:$SHORT_SHA'
+  - '${_REGION}-docker.pkg.dev/${_PROJECT_ID}/${_ARTIFACT_REPO}/${_APP_NAME}:$SHORT_SHA'
+
+artifacts:
+  objects:
+    location: '${_REPORT_BUCKET}/$BUILD_ID/'
+    paths:
+      - '/workspace/reports/*'
