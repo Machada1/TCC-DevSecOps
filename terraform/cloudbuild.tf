@@ -8,7 +8,7 @@ resource "google_cloudbuild_trigger" "devsecops_trigger" {
     name  = var.github_repo
 
     push {
-      branch = "main"
+      branch = "master"
     }
   }
 
