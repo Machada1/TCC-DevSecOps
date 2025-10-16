@@ -17,7 +17,7 @@ Os objetivos específicos são:
 
 ## Metodologia  
 
-A pesquisa seguirá uma **abordagem experimental e aplicada**, com foco na **implementação prática** de ferramentas e técnicas DevSecOps em um ambiente controlado.  
+A pesquisa seguirá uma **abordagem experimental**, com foco na **implementação prática** de ferramentas e técnicas DevSecOps em um ambiente controlado.  
 
 As etapas metodológicas incluem:  
 
