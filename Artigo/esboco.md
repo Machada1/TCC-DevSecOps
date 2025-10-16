@@ -4,10 +4,10 @@ Uma Abordagem DevSecOps para Inserção e Automação de Práticas de Segurança
 # Problema
 Com a crescente adoção de pipelines de Integração Contínua e Entrega Contínua (CI/CD), as práticas de segurança de aplicação(AppSec) podem acabar sendo negligenciadas. Essa lacuna pode expor vulnerabilidades críticas durante as fases de build, teste e deploy.
 
-O desafio está em como incorporar práticas de segurança de forma contínua e automatizada nos pipelines, garantindo que vulnerabilidades sejam detectadas e mitigadas desde as primeiras etapas do ciclo de desenvolvimento.
+O problema que esta pesquisa busca resolver se trata de: Como incorporar práticas de segurança de forma contínua e automatizada em pipelines?
 
 # Objetivo geral
-Investigar e propor uma abordagem prática para a inserção e automação de práticas de segurança em pipelines CI/CD, alinhadas aos princípios de DevSecOps, visando aumentar a segurança do processo de desenvolvimento e entrega de software.
+Investigar uma abordagem prática para a inserção e automação de práticas de segurança em pipelines CI/CD, alinhadas aos princípios de DevSecOps.
 
 # Objetivos específicos
 Os objetivos específicos são:
