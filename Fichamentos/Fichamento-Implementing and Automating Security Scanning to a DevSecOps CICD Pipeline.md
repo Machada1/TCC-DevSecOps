@@ -8,9 +8,10 @@ O artigo propõe uma abordagem prática para automatizar o processo de verifica�
 
 ## 2. Fichamento Bibliográfico 
 
+* _DVWA (DAMN VULNERABLE WEB APPLICATION)_ (p.3): É uma aplicação projetada como um website vulnerável e foi criado para fins educacionais e para teste de ferramentas de segurança.
 * _DevSecOps_ (p.1): É a integração de práticas de segurança em todas as fases do ciclo de vida do software, com o objetivo de reduzir riscos e detectar vulnerabilidades o mais cedo possível no processo de desenvolvimento.  
-* _SAST_ (Static Application Security Testing) (p.2): Técnica que analisa o código-fonte em busca de vulnerabilidades antes da execução da aplicação, permitindo correções antecipadas.  
-* _DAST_ (Dynamic Application Security Testing) (p.2): Técnica que testa a aplicação em execução para identificar vulnerabilidades reais e falhas de segurança dinâmicas.  
+* _SAST (Static Application Security Testing)_ (p.2): Técnica que analisa o código-fonte em busca de vulnerabilidades antes da execução da aplicação, permitindo correções antecipadas.  
+* _DAST (Dynamic Application Security Testing)_ (p.2): Técnica que testa a aplicação em execução para identificar vulnerabilidades reais e falhas de segurança dinâmicas.  
 * _Snyk & StackHawk Tools_ (p.3): Snyk atua em código e contêineres, com correção automática e integração ao pipeline CI/CD. StackHawk foca em testes dinâmicos e relatórios de vulnerabilidades com ações corretivas sugeridas.  
 * _DevSecOps Pipeline_ (p.3): Segue as fases *Plan – Code – Build – Test – Release – Deploy – Monitor*, adicionando medidas de segurança específicas a cada uma.  
 
