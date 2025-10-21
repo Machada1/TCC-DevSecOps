@@ -32,3 +32,4 @@ O artigo propõe uma abordagem prática para automatizar o processo de verifica�
 * _"The automated remediation features of Snyk and StackHawk save time and improve efficiency, while the integration of image scanning ensures that container images are thoroughly scanned for vulnerabilities before they are deployed."_ 
 
 * _"Future research should explore strategies to optimize resource allocation, parallelize or distribute scanning tasks, and leverage cloud-based infrastructure to enhance the efficiency of the CI/CD pipeline without compromising security."_
+
