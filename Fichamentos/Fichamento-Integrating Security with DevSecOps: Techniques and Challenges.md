@@ -11,21 +11,21 @@ O artigo aborda a necessidade de integrar segurança em todas as etapas do ciclo
 
 * DevSecOps (p.2): combinação de desenvolvimento, segurança e operações, que busca inserir práticas de segurança desde o início do ciclo de desenvolvimento para reduzir vulnerabilidades.
 
-* _Ferramenta Snyk (p.3): usada para realizar dependency checking e identificar vulnerabilidades conhecidas (CVE) durante o build, evitando que código inseguro avance para produção.
+* Ferramenta Snyk (p.3): usada para realizar dependency checking e identificar vulnerabilidades conhecidas (CVE) durante o build, evitando que código inseguro avance para produção.
 
-* _Benefícios do DevSecOps (p.2: automatiza verificações de segurança, reduz falhas humanas e diminui a necessidade de revisões manuais de código.
+* Benefícios do DevSecOps (p.2: automatiza verificações de segurança, reduz falhas humanas e diminui a necessidade de revisões manuais de código.
 
-* _Desafios de implementação (p.4): resistência à mudança, integração de ferramentas diversas e falta de experiência das equipes dificultam a consolidação do modelo.
+* Desafios de implementação (p.4): resistência à mudança, integração de ferramentas diversas e falta de experiência das equipes dificultam a consolidação do modelo.
 
 ## 3. Fichamento de Citações 
 
-* _“Security is a nonfunctional requirement and does not affect the functionality of the product because of this it is often pushed to the end of the process.”
+* “Security is a nonfunctional requirement and does not affect the functionality of the product because of this it is often pushed to the end of the process.”
 
-* _“DevSecOps is about introducing security earlier in the life cycle of application development, thus minimizing vulnerabilities and bringing security closer to IT and business objectives.”
+* “DevSecOps is about introducing security earlier in the life cycle of application development, thus minimizing vulnerabilities and bringing security closer to IT and business objectives.”
 
-* _“We implement security right at the start of the project from the initialization stage.”
+* “We implement security right at the start of the project from the initialization stage.”
 
-* _“Snyk pulls up all the vulnerabilities and we worked towards fixing these vulnerabilities before moving code for staging and functional testing.”
+* “Snyk pulls up all the vulnerabilities and we worked towards fixing these vulnerabilities before moving code for staging and functional testing.”
 
-*_“Implementing security in continuous development was another challenge as this is seen as something that comes towards the end of development.”
+* “Implementing security in continuous development was another challenge as this is seen as something that comes towards the end of development.”
 
