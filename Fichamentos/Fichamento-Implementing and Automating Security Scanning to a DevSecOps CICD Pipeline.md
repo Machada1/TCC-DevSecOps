@@ -12,8 +12,7 @@ O artigo propõe uma abordagem prática para automatizar o processo de verifica�
 * _SAST_ (Static Application Security Testing) (p.2): Técnica que analisa o código-fonte em busca de vulnerabilidades antes da execução da aplicação, permitindo correções antecipadas.  
 * _DAST_ (Dynamic Application Security Testing) (p.2): Técnica que testa a aplicação em execução para identificar vulnerabilidades reais e falhas de segurança dinâmicas.  
 * _Snyk & StackHawk Tools_ (p.3): Snyk atua em código e contêineres, com correção automática e integração ao pipeline CI/CD. StackHawk foca em testes dinâmicos e relatórios de vulnerabilidades com ações corretivas sugeridas.  
-* _DevSecOps Pipeline _ (p.3): Segue as fases *Plan – Code – Build – Test – Release – Deploy – Monitor*, adicionando medidas de segurança específicas a cada uma.  
-* _Results_ (p.5): A automação com Snyk e StackHawk reduziu o tempo de análise (SAST em 19 segundos e DAST em 2 minutos e 1 segundo), proporcionando maior agilidade e uma visão consolidada de vulnerabilidades via dashboard.
+* _DevSecOps Pipeline_ (p.3): Segue as fases *Plan – Code – Build – Test – Release – Deploy – Monitor*, adicionando medidas de segurança específicas a cada uma.  
 
 ## 3. Fichamento de Citações 
 
