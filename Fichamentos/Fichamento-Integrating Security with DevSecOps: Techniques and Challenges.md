@@ -10,11 +10,11 @@ O artigo aborda a necessidade de integrar segurança em todas as etapas do ciclo
 
 * _DevSecOps_ (p.2): combinação de desenvolvimento, segurança e operações, que busca inserir práticas de segurança desde o início do ciclo de desenvolvimento para reduzir vulnerabilidades.
 
-* _Ferramenta Snyk_ (p.3): usada para realizar dependency checking e identificar vulnerabilidades conhecidas (CVE) durante o build, evitando que código inseguro avance para produção.
+* _Snyk Tool_ (p.3): usada para realizar dependency checking e identificar vulnerabilidades conhecidas (CVE) durante o build, evitando que código inseguro avance para produção.
 
-* _Benefícios do DevSecOps_ (p.2: automatiza verificações de segurança, reduz falhas humanas e diminui a necessidade de revisões manuais de código.
+* _DevSecOps Benefits_ (p.2: automatiza verificações de segurança, reduz falhas humanas e diminui a necessidade de revisões manuais de código.
 
-* _Desafios de implementação_ (p.4): resistência à mudança, integração de ferramentas diversas e falta de experiência das equipes dificultam a consolidação do modelo.
+* _Challenges_ (p.4): resistência à mudança, integração de ferramentas diversas e falta de experiência das equipes dificultam a consolidação do modelo.
 
 ## 3. Fichamento de Citações 
 
