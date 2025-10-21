@@ -12,7 +12,7 @@ O artigo aborda a necessidade de integrar segurança em todas as etapas do ciclo
 
 * _Snyk Tool_ (p.3): usada para realizar dependency checking e identificar vulnerabilidades conhecidas (CVE) durante o build, evitando que código inseguro avance para produção.
 
-* _DevSecOps Benefits_ (p.2: automatiza verificações de segurança, reduz falhas humanas e diminui a necessidade de revisões manuais de código.
+* _DevSecOps Benefits_ (p.2): automatiza verificações de segurança, reduz falhas humanas e diminui a necessidade de revisões manuais de código.
 
 * _Challenges_ (p.4): resistência à mudança, integração de ferramentas diversas e falta de experiência das equipes dificultam a consolidação do modelo.
 
