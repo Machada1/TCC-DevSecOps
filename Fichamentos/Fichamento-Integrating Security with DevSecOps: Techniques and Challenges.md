@@ -9,7 +9,7 @@ O artigo aborda a necessidade de integrar segurança em todas as etapas do ciclo
 
 ## 2. Fichamento Bibliográfico 
 
-* _DevSecOps (p.2): combinação de desenvolvimento, segurança e operações, que busca inserir práticas de segurança desde o início do ciclo de desenvolvimento para reduzir vulnerabilidades.
+* DevSecOps (p.2): combinação de desenvolvimento, segurança e operações, que busca inserir práticas de segurança desde o início do ciclo de desenvolvimento para reduzir vulnerabilidades.
 
 * _Ferramenta Snyk (p.3): usada para realizar dependency checking e identificar vulnerabilidades conhecidas (CVE) durante o build, evitando que código inseguro avance para produção.
 
