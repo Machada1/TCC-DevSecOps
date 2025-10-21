@@ -8,10 +8,10 @@ O artigo propõe a implementação prática de um pipeline DevSecOps em um ambie
 
 ## 2. Fichamento Bibliográfico 
 
-* _Methodology (p.2): O processo proposto segue cinco fases contínuas — desenvolvimento, testes, integração, implantação e monitoramento — todas automatizadas via **GitLab CI/CD** e **Docker**.  
-* _SAST & DAST (p.4): O **Njsscan** é usado para testes estáticos automatizados, analisando o código-fonte em busca de vulnerabilidades conhecidas; o **OWASP ZAP** realiza testes dinâmicos simulando ataques a endpoints públicos.  
-* _Continuous Testing (p.5): Possibilitou detectar falhas como o uso de algoritmos criptográficos inseguros (CWE-327) e componentes vulneráveis (OWASP A9).  
-* _Continuous Integration (p.5): O pipeline é executado em uma instância, com containers Docker configurados e integrados ao repositório GitLab para execução automática dos jobs.  
+* _Methodology_ (p.2): O processo proposto segue cinco fases contínuas — desenvolvimento, testes, integração, implantação e monitoramento — todas automatizadas via **GitLab CI/CD** e **Docker**.  
+* _SAST & DAST_ (p.4): O **Njsscan** é usado para testes estáticos automatizados, analisando o código-fonte em busca de vulnerabilidades conhecidas; o **OWASP ZAP** realiza testes dinâmicos simulando ataques a endpoints públicos.  
+* _Continuous Testing_ (p.5): Possibilitou detectar falhas como o uso de algoritmos criptográficos inseguros (CWE-327) e componentes vulneráveis (OWASP A9).  
+* _Continuous Integration_ (p.5): O pipeline é executado em uma instância, com containers Docker configurados e integrados ao repositório GitLab para execução automática dos jobs.  
 
 ## 3. Fichamento de Citações 
 
