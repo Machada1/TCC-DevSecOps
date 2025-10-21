@@ -8,7 +8,7 @@ Os fichamentos apresentam a análise, conceitos principais e citações extraíd
 ## Lista de Artigos e Fichamentos
 
 1. **Integrating Security with DevSecOps: Techniques and Challenges**  
-   [Fichamento disponível aqui]((https://github.com/ICEI-PUC-Minas-PCO-SI/pco-si-2025-2-tipesq-3157101-devsecops-guilherme-machado/blob/master/Fichamentos/Fichamento-Integrating%20Security%20with%20DevSecOps%3A%20Techniques%20and%20Challenges.md))
+   [Fichamento disponível aqui](https://github.com/ICEI-PUC-Minas-PCO-SI/pco-si-2025-2-tipesq-3157101-devsecops-guilherme-machado/blob/master/Fichamentos/Fichamento-Integrating%20Security%20with%20DevSecOps%3A%20Techniques%20and%20Challenges.md)
 
 2. **Implementing and Automating Security Scanning to a DevSecOps CI/CD Pipeline**  
    [Fichamento disponível aqui]((https://github.com/ICEI-PUC-Minas-PCO-SI/pco-si-2025-2-tipesq-3157101-devsecops-guilherme-machado/blob/master/Fichamentos/Fichamento-Implementing%20and%20Automating%20Security%20Scanning%20to%20a%20DevSecOps%20CICD%20Pipeline))  
