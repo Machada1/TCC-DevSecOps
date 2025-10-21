@@ -1,7 +1,6 @@
 # Integrating Security with DevSecOps: Techniques and Challenges
 
-Z. Ahmed and S. C. Francis, "Integrating Security with DevSecOps: Techniques and Challenges," 2019 International Conference on Digitization (ICD), Sharjah, United Arab Emirates, 2019, pp. 178-182, doi: 10.1109/ICD47981.2019.9105789. keywords: {DevOps;Organizations;Digitization;Software;Security;DevOps;DevOpsSec;Software Development},
-
+Z. Ahmed and S. C. Francis, "Integrating Security with DevSecOps: Techniques and Challenges," 2019 International Conference on Digitization (ICD), Sharjah, United Arab Emirates, 2019, pp. 178-182, doi: 10.1109/ICD47981.2019.9105789. 
 
 ## 1. Fichamento de Conteúdo
 
