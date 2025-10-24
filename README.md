@@ -139,7 +139,7 @@ gcloud builds submit --config cloudbuild.yaml .
 
 ```bash
 gcloud builds list
-gcloud builds log <BUILD_ID>
+gcloud builds log <BUILD_ID >
 ```
 
 ### Avaliação dos resultados
