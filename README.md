@@ -86,7 +86,6 @@ O DVWA é uma aplicação web vulnerável escrita em PHP/MySQL, amplamente usada
 ```bash
 docker pull vulnerables/web-dvwa
 docker run -d -p 8080:80 vulnerables/web-dvwa
-
 ```
 
 * Acesse `http://localhost:8080` para confirmar funcionamento.
@@ -125,7 +124,7 @@ gcloud builds submit --config cloudbuild.yaml .
 
 * Etapas do pipeline:
 
-  1. Build da imagem Docker
+  1. Build da imagem Docker(base DVWA)
   2. Push para o Artifact Registry
   3. Atualização do Deployment no GKE
   4. SAST com Semgrep
@@ -170,3 +169,5 @@ gsutil ls gs://devsecops-reports/<BUILD_ID>/
 * O ambiente é totalmente **provisionado via Terraform**, garantindo reprodutibilidade.
 * Todos os relatórios ficam armazenados em **bucket GCS**, permitindo auditoria e rastreabilidade.
 * As ferramentas de segurança estão configuradas para gerar evidências de vulnerabilidades em cada etapa do pipeline, de forma automatizada.
+* O uso do DVWA proporciona um ambiente intencionalmente vulnerável, permitindo observar de forma prática o funcionamento e a precisão das ferramentas automatizadas de segurança.
+

@@ -6,27 +6,36 @@ substitutions:
   _REGION: "us-central1"
   _PROJECT_ID: "my-gcp-project"    # substituir pelo ID real do projeto
   _CLUSTER_NAME: "devsecops-cluster"
-  _APP_NAME: "devsecops-app"
-  _DEPLOYMENT_NAME: "devsecops-app"
+  _APP_NAME: "dvwa-app"
+  _DEPLOYMENT_NAME: "dvwa-app"
   _REPORT_BUCKET: "gs://devsecops-reports"   # bucket opcional p/ salvar relatórios
+  _SOURCE_IMAGE: "vulnerables/web-dvwa:latest"  # imagem base do Docker Hub
+ 
 
 steps:
-  # 1 Build da imagem Docker
+  # 1 Pull da imagem DVWA pública
   - name: 'gcr.io/cloud-builders/docker'
-    id: 'build'
+    id: 'pull-dvwa'
     args:
-      - 'build'
-      - '-t'
-      - '${_REGION}-docker.pkg.dev/${_PROJECT_ID}/${_ARTIFACT_REPO}/${_APP_NAME}:$SHORT_SHA'
-      - '.'
+      - 'pull'
+      - '${_SOURCE_IMAGE}'
 
-  # 2 Push da imagem para o Artifact Registry
+  # 2 Tag e push da imagem para o Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'push-dvwa'
+    args:
+      - 'tag'
+      - '${_SOURCE_IMAGE}'
+      - '${_REGION}-docker.pkg.dev/${_PROJECT_ID}/${_ARTIFACT_REPO}/${_APP_NAME}:$SHORT_SHA'
+    waitFor: ['pull-dvwa']
+
   - name: 'gcr.io/cloud-builders/docker'
     id: 'push'
     args:
       - 'push'
       - '${_REGION}-docker.pkg.dev/${_PROJECT_ID}/${_ARTIFACT_REPO}/${_APP_NAME}:$SHORT_SHA'
-
+    waitFor: ['push-dvwa']
+    
   # 3 SAST com Semgrep (análise estática)
   - name: 'returntocorp/semgrep:latest'
     id: 'semgrep'
