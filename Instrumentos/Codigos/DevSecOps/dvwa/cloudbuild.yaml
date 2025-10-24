@@ -48,7 +48,7 @@ steps:
       - '/workspace/reports/semgrep-report.json'
       - '.'
     waitFor:
-      - 'build'
+      - 'push'
 
   # 4 SCA com OWASP Dependency-Check (análise de dependências)
   - name: 'owasp/dependency-check'
@@ -61,7 +61,7 @@ steps:
       - '--out'
       - '/workspace/reports/dependency-check'
     waitFor:
-      - 'build'
+      - 'push'
 
   # 5 IaC Scan (Terraform) com Checkov
   - name: 'bridgecrew/checkov:latest'
@@ -74,7 +74,7 @@ steps:
       - '--output-file-path'
       - '/workspace/reports/checkov-report.json'
     waitFor:
-      - 'build'
+      - 'push'
 
   # 6 Container Scan (Trivy)
   - name: 'aquasec/trivy'
@@ -89,6 +89,21 @@ steps:
     waitFor:
       - 'push'
 
+  # 6.1 Deploy do MySQL no GKE
+  - name: 'gcr.io/cloud-builders/kubectl'
+    id: 'deploy-mysql'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        gcloud container clusters get-credentials ${_CLUSTER_NAME} --region ${_REGION} --project ${_PROJECT_ID}
+        kubectl apply -f k8s/mysql.yaml
+        echo "Aguardando o MySQL iniciar..."
+        sleep 30
+    waitFor:
+      - 'trivy'
+
+
   # 7 Deploy no GKE
   - name: 'gcr.io/cloud-builders/kubectl'
     id: 'deploy'
@@ -99,7 +114,7 @@ steps:
         gcloud container clusters get-credentials ${_CLUSTER_NAME} --region ${_REGION} --project ${_PROJECT_ID}
         kubectl set image deployment/${_DEPLOYMENT_NAME} ${_APP_NAME}=${_REGION}-docker.pkg.dev/${_PROJECT_ID}/${_ARTIFACT_REPO}/${_APP_NAME}:$SHORT_SHA --record
     waitFor:
-      - 'trivy'
+      - 'deploy-mysql'
 
   # 8 DAST com OWASP ZAP (testes dinâmicos de segurança)
   - name: 'owasp/zap2docker-stable'
@@ -108,7 +123,7 @@ steps:
     args:
       - '-c'
       - |
-        zap-baseline.py -t http://${_APP_NAME}.default.svc.cluster.local:8080 -r /workspace/reports/zap-report.html || true
+        zap-baseline.py -t http://${_APP_NAME}.default.svc.cluster.local:80 -r /workspace/reports/zap-report.html || true
     waitFor:
       - 'deploy'
 
@@ -126,6 +141,19 @@ steps:
         fi
     waitFor:
       - 'zap-scan'
+
+  # 10 Exibir IP externo do DVWA
+  - name: 'gcr.io/cloud-builders/kubectl'
+    id: 'get-service-ip'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        gcloud container clusters get-credentials ${_CLUSTER_NAME} --region ${_REGION} --project ${_PROJECT_ID}
+        kubectl get svc dvwa-service -o wide
+    waitFor:
+      - 'deploy'
+
 
 images:
   - '${_REGION}-docker.pkg.dev/${_PROJECT_ID}/${_ARTIFACT_REPO}/${_APP_NAME}:$SHORT_SHA'

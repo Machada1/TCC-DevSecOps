@@ -124,15 +124,16 @@ gcloud builds submit --config cloudbuild.yaml .
 
 * Etapas do pipeline:
 
-  1. Build da imagem Docker(base DVWA)
-  2. Push para o Artifact Registry
-  3. Atualização do Deployment no GKE
-  4. SAST com Semgrep
-  5. SCA com OWASP Dependency-Check
-  6. IaC Scan com Checkov
-  7. Container Scan com Trivy
+  1. Pull da imagem Docker(base DVWA)
+  2. Tag e Push para o Artifact Registry
+  3. SAST com Semgrep
+  4. SCA com OWASP Dependency-Check
+  5. IaC Scan com Checkov
+  6. Container Scan com Trivy e Deploy do MySQL no GKE
+  7. Deploy do app no GKE
   8. DAST com OWASP ZAP
   9. Upload dos relatórios para o bucket GCS
+  10. Exibir IP externo do DVWA
 
 2. Acompanhe logs:
 
