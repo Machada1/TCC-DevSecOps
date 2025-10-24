@@ -27,7 +27,7 @@ Este projeto pode ser replicado seguindo os passos abaixo:
 - **Terraform** instalado (>= 1.5)
 - **Google Cloud SDK** instalado e autenticado
 - **Docker** instalado para testes locais opcionais
-- Código da aplicação Python (`app/main.py`) e Dockerfile
+- Código-fonte ou imagem do **DVWA (Damn Vulnerable Web Application)**
 
 
 ### Provisionamento do ambiente com Terraform
@@ -74,14 +74,19 @@ gcloud artifacts repositories list
 gsutil ls gs://devsecops-reports
 ```
 
-### Preparar a aplicação e Docker
+### Preparar a aplicação e Docker(DVWA)
 
-1. Certifique-se que a aplicação Python e o Dockerfile estão corretos.
+O projeto utiliza a aplicação DVWA (Damn Vulnerable Web Application) como base para testes de segurança.
+O DVWA é uma aplicação web vulnerável escrita em PHP/MySQL, amplamente usada em laboratórios de pentest e DevSecOps, permitindo avaliar a efetividade de ferramentas de varredura em um ambiente controlado.
+
+
+1. O pipeline utilizará a imagem oficial do DVWA disponível no Docker Hub:
 2. (Opcional) Teste build da imagem local:
 
 ```bash
-docker build -t devsecops-app:local ./app
-docker run -p 8080:8080 devsecops-app:local
+docker pull vulnerables/web-dvwa
+docker run -d -p 8080:80 vulnerables/web-dvwa
+
 ```
 
 * Acesse `http://localhost:8080` para confirmar funcionamento.

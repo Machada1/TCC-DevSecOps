@@ -22,7 +22,7 @@ A pesquisa seguirá uma **abordagem experimental**, com foco na **implementaçã
 O ambiente será provisionado via **Terraform**, incluindo uma rede, um repositório de artefatos e um cluster Kubernetes (GKE).  
 Em seguida, será configurado um pipeline **CI/CD com o Cloud Build**, no qual serão integradas ferramentas automatizadas de análise de segurança de código, dependências e infraestrutura.  
 
-Uma **aplicação simples em Python** será utilizada como base para os testes. O pipeline executará o build, as análises de segurança e o deploy automatizado no GKE.  
+Uma aplicação **DVWA(Damn Vulnerable Web Application)** será utilizada como base para os testes. O pipeline executará o build, as análises de segurança e o deploy automatizado no GKE.  
 
 Os resultados serão analisados de forma **qualitativa**, considerando a capacidade das ferramentas em detectar vulnerabilidades e o nível de automação alcançado.  
 A proposta busca demonstrar como práticas DevSecOps podem ser implementadas de forma eficiente e reproduzível em pipelines CI/CD.
