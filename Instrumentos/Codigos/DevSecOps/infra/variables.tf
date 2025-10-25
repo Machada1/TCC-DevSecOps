@@ -42,5 +42,6 @@ variable "github_owner" {
 variable "github_repo" {
   description = "Nome do repositório GitHub conectado ao Cloud Build"
   type        = string
+  default = "pco-si-2025-2-tipesq-3157101-devsecops-guilherme-machado"
 }
 

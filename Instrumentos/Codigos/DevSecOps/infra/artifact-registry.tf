@@ -9,7 +9,7 @@ resource "google_artifact_registry_repository" "devsecops_repo" {
     id     = "retain-latest"
     action = "KEEP"
     most_recent_versions {
-      keep_count = 5
+      keep_count = 1
     }
   }
 
