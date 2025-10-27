@@ -15,3 +15,7 @@ Os fichamentos apresentam a análise, conceitos principais e citações extraíd
 
 3. **Implementation of DevSecOps by Integrating Static and Dynamic Security Testing in CI/CD Pipelines**  
    [Fichamento disponível aqui](https://github.com/ICEI-PUC-Minas-PCO-SI/pco-si-2025-2-tipesq-3157101-devsecops-guilherme-machado/blob/master/Fichamentos/Fichamento-Implementation%20of%20DevSecOps%20by%20Integrating%20Static%20and%20Dynamic%20Security%20Testing%20in%20CICD%20PipelinesCD%20Pipelines.md)
+
+4. **An Empirical Study of DevSecOps Focused on Continuous Security Testing**
+   [Fichamento disponível aqui](https://github.com/ICEI-PUC-Minas-PCO-SI/pco-si-2025-2-tipesq-3157101-devsecops-guilherme-machado/blob/master/Fichamentos/Fichamento-An%20Empirical%20Study%20of%20DevSecOps%20Focused%20on%20Continuous%20Security%20Testing.md)
+
