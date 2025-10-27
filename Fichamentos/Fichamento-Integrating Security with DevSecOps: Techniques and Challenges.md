@@ -8,13 +8,13 @@ O artigo aborda a necessidade de integrar segurança em todas as etapas do ciclo
 
 ## 2. Fichamento Bibliográfico 
 
-* _DevSecOps_ (p.2): combinação de desenvolvimento, segurança e operações, que busca inserir práticas de segurança desde o início do ciclo de desenvolvimento para reduzir vulnerabilidades.
+* _DevSecOps_ (p.2): Combinação de desenvolvimento, segurança e operações, que busca inserir práticas de segurança desde o início do ciclo de desenvolvimento para reduzir vulnerabilidades.
 
-* _Snyk Tool_ (p.3): usada para realizar dependency checking e identificar vulnerabilidades conhecidas (CVE) durante o build, evitando que código inseguro avance para produção.
+* _Snyk Tool_ (p.3): É uma ferramenta de segurança usada para realizar dependency checking e identificar vulnerabilidades conhecidas (CVE) durante o build, evitando que código inseguro avance para produção.
 
-* _DevSecOps Benefits_ (p.2): automatiza verificações de segurança, reduz falhas humanas e diminui a necessidade de revisões manuais de código.
+* _Security Automation_ (p.3): Refere-se ao uso de pipelines automatizados para executar verificações de segurança contínuas. A automação permite que o controle de vulnerabilidades, análise de código e revisão de dependências ocorram sem intervenção manual, mantendo a agilidade do DevOps.
 
-* _Challenges_ (p.4): resistência à mudança, integração de ferramentas diversas e falta de experiência das equipes dificultam a consolidação do modelo.
+* _Insecure Encryption_ (p.2): Uso de algoritmos ou configurações criptográficas fracas, permitindo que dados sensíveis sejam expostos. Pode ser evitado com padrões modernos como AES-GCM e TLS atualizados.
 
 ## 3. Fichamento de Citações 
 
