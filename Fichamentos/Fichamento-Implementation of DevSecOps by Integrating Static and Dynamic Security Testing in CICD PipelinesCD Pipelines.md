@@ -8,8 +8,8 @@ O artigo propõe a implementação prática de um pipeline DevSecOps em um ambie
 
 ## 2. Fichamento Bibliográfico 
 
-* _Methodology_ (p.2): O processo proposto segue cinco fases contínuas — desenvolvimento, testes, integração, implantação e monitoramento — todas automatizadas via **GitLab CI/CD** e **Docker**.  
-* _SAST & DAST_ (p.4): O **Njsscan** é usado para testes estáticos automatizados, analisando o código-fonte em busca de vulnerabilidades conhecidas; o **OWASP ZAP** realiza testes dinâmicos simulando ataques a endpoints públicos.  
+* _OWASP (Open Web Application Security Project)_ (p.2): rganização global sem fins lucrativos dedicada à melhoria da segurança de aplicações. Ela fornece diretrizes, ferramentas e padrões amplamente utilizados, como o OWASP Top 10, que lista as principais vulnerabilidades em sistemas web. Entre suas ferramentas, destaca-se o OWASP ZAP, usada para testes dinâmicos de segurança (DAST), e o item OWASP A9, que alerta para o risco de usar componentes com vulnerabilidades conhecidas.  
+* _SAST & DAST_ (p.4): SAST(Static Application Security Testing) é a análise do código-fonte para identificar vulnerabilidades antes da execução do sistema. O **Njsscan** é usado para testes estáticos automatizados, analisando o código-fonte em busca de vulnerabilidades conhecidas; DAST (Dynamic Application Security Testing) são testes de segurança realizados com o sistema em execução, simulando ataques externos para detectar falhas exploráveis. O **OWASP ZAP** realiza testes dinâmicos simulando ataques a endpoints públicos.  
 * _Continuous Testing_ (p.5): Possibilitou detectar falhas como o uso de algoritmos criptográficos inseguros (CWE-327) e componentes vulneráveis (OWASP A9).  
 * _Continuous Integration_ (p.5): O pipeline é executado em uma instância, com containers Docker configurados e integrados ao repositório GitLab para execução automática dos jobs.  
 
