@@ -1,10 +1,8 @@
-# Título do trabalho
+# Uma Abordagem DevSecOps para Inserção e Automação de Práticas de Segurança em Pipelines CI/CD
 
-1. Nome do aluno 1
-1. Nome do aluno 2 (se houver)
+1. Guilherme Henrique de Lima Machado
 
-* Nome do professor orientador de conteúdo
-* Nome do professor orientador acadêmico (se houver)
+* [Lesandro Ponciano](https://orcid.org/0000-0002-5724-0094)
 
 ## Introdução
 
