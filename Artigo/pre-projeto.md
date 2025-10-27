@@ -6,11 +6,17 @@
 
 ## Introdução
 
-1. A área da Engenharia de Software tratada neste trabalho é.... _[incluir a frase exatamente como ela aparece no seu projeto]_
-1. O problema que este trabalho busca resolver nessa área é... _[incluir a frase exatamente como ela aparece no seu projeto]_
-1. Resolver este problema é relevante por que...
-1. O objetivo geral deste trabalho é _[incluir a frase exatamente como ela aparece no seu projeto]_
-1. Os *três* objetivos específicos deste trabalho são _[incluir exatamente como aparece no seu projeto]_
+1. A área da Engenharia de Software tratada neste trabalho é: Integração de Segurança no Ciclo de Vida de Desenvolvimento de Software (Secure SDLC / DevSecOps)
+2. O problema que este trabalho busca resolver nessa área é: Como incorporar práticas de segurança de forma contínua e automatizada em pipelines CI/CD?
+
+3. Resolver este problema é relevante porque a segurança ainda é tratada tardiamente no ciclo de desenvolvimento, gerando vulnerabilidades e retrabalho. Integrá-la de forma contínua e automatizada aumenta a confiabilidade e reduz riscos nas entregas de software.
+4. O objetivo geral deste trabalho é investigar uma abordagem prática para a inserção e automação de práticas de segurança em pipelines CI/CD, alinhadas aos princípios de DevSecOps.
+5. Os *três* objetivos específicos deste trabalho são:
+  
+- Integrar práticas de segurança em um pipeline CI/CD.
+-  Aplicar ferramentas automatizadas de segurança em um pipeline experimental.
+-  Aliar estratégias de automação de segurança integradas a pipelines como SAST, DAST, SCA e IaC scanning.
+
 
 ## Fundamentação Teórica
 
