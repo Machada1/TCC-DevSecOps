@@ -20,20 +20,47 @@
 
 ## Fundamentação Teórica
 
-1. O conceito/teoria principal associado a este trabalho é ....  A sua definição neste trabalho  é conforme definido no trabalho .... pelo autor ...
-1. O conceito/teoria secundário associado a este trabalho é ....  A sua definição neste trabalho é conforme definido no trabalho .... pelo autor ...
-1. O conceito/teoria terciário associado a este trabalho é ....  A sua definição neste trabalho é conforme definido no trabalho .... pelo autor ...
+1. O conceito/teoria principal associado a este trabalho é DevSecOps. A sua definição neste trabalho é uma abordagem emergente para integrar segurança robusta ao processo de desenvolvimento de software DevOps, focando em quebrar os silos entre desenvolvimento, segurança e operações , conforme definido no trabalho "An Empirical Study of DevSecOps Focused on Continuous Security Testing" pelos autores Santos, Escravana, Pacheco e Feio.
+   
+2. O conceito/teoria secundário associado a este trabalho é Continuous Security Testing (Teste Contínuo de Segurança). A sua definição neste trabalho é o princípio de aplicar o teste de segurança do software e seus componentes de forma contínua ao longo de todo o pipeline CI/CD, permitindo que as equipes de segurança acompanhem a velocidade do DevOps , conforme definido no trabalho "Continuous Security Testing: A Case Study on Integrating Dynamic Security Testing Tools in CI/CD Pipelines" pelos autores Rangnau, v. Buijtenen, Fransen e Turkmen.
+
+3. O conceito/teoria terciário associado a este trabalho é CI/CD Pipeline (Pipeline de Integração e Entrega Contínua). A sua definição neste trabalho é o componente central do DevSecOps, composto por um conjunto de fases consecutivas que definem várias atividades e ferramentas para auxiliar na automação do desenvolvimento de software , conforme definido no trabalho "An Empirical Study of DevSecOps Focused on Continuous Security Testing" pelos autores Santos, Escravana, Pacheco e Feio .
 
 ## Trabalhos Relacionados
 
-1. O trabalho mais relacionado é ...., publicado no ano ..., por que ....
-1. O segundo trabalho mais relacionado é .... , publicado no ano ..., por que ....
-1. O terceiro trabalho mais relacionado é ...., publicado no ano ...,  por que ....
+1. O trabalho mais relacionado é "An Empirical Study of DevSecOps Focused on Continuous Security Testing" , publicado em 2024, porque propõe um framework completo de DevSecOps, define um pipeline de oito fases e aplica um estudo de caso real (Projeto GRACE) integrando múltiplas ferramentas para SAST, DAST e SCA (Software Composition Analysis). A abordagem de aplicar um framework experimental a um projeto real, analisando ferramentas e resultados, é diretamente alinhada aos objetivos deste trabalho.
+2. O segundo trabalho mais relacionado é "Implementation of DevSecOps by Integrating Static and Dynamic Security Testing in CI/CD Pipelines" , publicado em 2022, porque apresenta uma implementação prática que combina especificamente testes de segurança estáticos (SAST) e dinâmicos (DAST) em um pipeline CI/CD , demonstrando a automação com GitLab e Docker e medindo o impacto na redução do tempo de deploy.
+3. O terceiro trabalho mais relacionado é "Implementing and Automating Security Scanning to a DevSecOps CI/CD Pipeline" , publicado em 2023, porque foca na implementação e automação de varreduras de segurança (SAST e DAST) usando ferramentas específicas (Snyk e StackHawk) em um pipeline CI/CD com GitHub Actions. O foco na integração de ferramentas e no monitoramento de resultados por dashboards é central para os objetivos práticos desta pesquisa.
+4. O quarto trabalho mais relacionado é "Continuous Security Testing: A Case Study on Integrating Dynamic Security Testing Tools in CI/CD Pipelines", publicado em 2020, porque realiza um estudo de caso focado exclusivamente na integração de múltiplas técnicas de DAST (WAST, SAS e BDST). Ele fornece uma análise detalhada dos desafios técnicos, do overhead (tempo de execução) e dos requisitos para automatizar testes dinâmicos, o que é muito relevante para os objetivos específicos deste trabalho.
+5. O quinto trabalho mais relacionado é "Integrating Security with DevSecOps: Techniques and Challenges", publicado em 2019, porque, apesar de menos técnico, discute os desafios culturais e de processo ao introduzir a segurança em um pipeline DevOps existente. Ele fornece o contexto sobre por que o DevSecOps é necessário e relata um caso de integração da ferramenta Snyk para verificação de dependências (SCA).
 
 ## Materiais e Métodos
 
-1. O tipo de pesquisa adotado neste trabalho é ...., por que ...
-1. Os materiais utilizados neste trabalho são .... [ex.: software, computadores, dados, etc]
-1. Os métodos empregados neste trabalho são .... [ex.: método de amostragem, método de análise de correlação, método de agrupamento, etc]
-1. As métricas de avaliação são .... [ex.: tempo de resposta, taxa de erros, mutation score, cobertura, latência, etc]
-1. As etapa de execução do trabalho são .... [listar as etapa de execução]
+1. O tipo de pesquisa adotado neste trabalho é Experimental, porque envolve a criação de um ambiente controlado (GCP provisionado via Terraform) e a implementação de um pipeline CI/CD (Cloud Build) com uma aplicação-alvo intencionalmente vulnerável (DVWA). Este ambiente será usado para executar experimentos (automação de SAST, DAST, etc.) e, em seguida, analisar os resultados para validação da abordagem.
+  
+2. Os materiais utilizados neste trabalho são:
+   
+- Plataforma de Nuvem: Google Cloud Platform (GCP), incluindo Cloud Build, Artifact Registry, Google Kubernetes Engine (GKE) e Cloud Storage (GCS).
+- Software de Infraestrutura como Código: Terraform (>= 1.5).
+- Software de Base: Google Cloud SDK, Docker.
+- Aplicação-Alvo para Testes: DVWA (Damn Vulnerable Web Application).
+- Ferramentas de Segurança: Semgrep (SAST), OWASP Dependency-Check (SCA), Checkov (IaC Scan), Trivy (Container Scan) e OWASP ZAP (DAST).
+
+3. Os métodos empregados neste trabalho são a Análise Qualitativa, focando na efetividade da integração das ferramentas, no nível de automação alcançado e nas boas práticas observadas na implementação de DevSecOps.
+   
+4. As métricas de avaliação são qualitativas, baseadas na análise dos relatórios (.json e .html) gerados pelas ferramentas de segurança. A avaliação foca em:
+
+- Efetividade da integração das ferramentas no pipeline.
+- Nível de automação alcançado na detecção de vulnerabilidades.
+- Boas práticas observadas na implementação de DevSecOps.
+- Detecção e mitigação de vulnerabilidades em cada etapa do pipeline.
+   
+5. As etapas de execução do trabalho são:
+
+    1 - Provisionamento do Ambiente: Criação automática da infraestrutura na GCP (VPC, GKE, Artifact Registry, GCS Bucket) usando Terraform.
+
+    2 - Configuração do Pipeline: Definição das etapas de segurança (SAST, SCA, IaC Scan, Container Scan, DAST) e deploy no arquivo cloudbuild.yaml.
+
+    3 - Execução do Pipeline: Disparo do build no Cloud Build para executar o pipeline contra a aplicação-alvo (DVWA).
+
+    4 - Avaliação dos Resultados: Coleta e análise qualitativa dos relatórios de segurança gerados automaticamente e armazenados no bucket GCS.
