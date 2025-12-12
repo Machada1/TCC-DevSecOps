@@ -758,10 +758,11 @@ O pipeline atual é eficaz para:
 - ✅ Vulnerabilidades de infraestrutura (Container, OS)
 - ✅ Misconfigurações (Kubernetes, Terraform, IaC)
 - ✅ Dependências vulneráveis (SCA)
+- ✅ Testes dinâmicos de segurança (DAST com OWASP ZAP)
 
-Para cobertura completa, é necessário:
-- ⚠️ Implementar DAST funcional (OWASP ZAP, Nuclei, etc.)
+Para maior cobertura, considerar:
 - ⚠️ Adicionar SAST específico para PHP (linguagem do DVWA)
+- ⚠️ Executar scan ZAP autenticado para testar áreas protegidas
 """)
     
     # ========================================================================
@@ -785,8 +786,10 @@ Para cobertura completa, é necessário:
    - Nenhuma vulnerabilidade foi encontrada nas dependências do projeto Terraform/CloudBuild
    - Indica boas práticas de composição de software
 
-4. **GAPS DE COBERTURA**
-   - O DAST é essencial para detectar as principais vulnerabilidades web do DVWA
+4. **DAST OPERACIONAL**
+   - OWASP ZAP executando com sucesso, detectando vulnerabilidades web
+   - Headers de segurança ausentes identificados (CSP, X-Content-Type-Options)
+   - Cookies sem flags de segurança detectados
 """)
     
     report.add_header("Eficácia do Pipeline", 3)
@@ -795,29 +798,30 @@ Para cobertura completa, é necessário:
 - ✅ Detecção automatizada de milhares de vulnerabilidades
 - ✅ Execução totalmente integrada ao CI/CD (Cloud Build)
 - ✅ Múltiplas camadas de análise (Container, IaC, SCA, SAST, DAST)
+- ✅ DAST funcional com OWASP ZAP detectando 18 tipos de vulnerabilidades
 - ✅ Relatórios estruturados em JSON para análise
 - ✅ Tempo de execução aceitável (~10-15 minutos)
 
 **PONTOS DE MELHORIA:**
-- ⚠️ Necessidade de validar funcionamento do DAST
 - ⚠️ Ausência de SAST para código PHP da aplicação
+- ⚠️ Scan ZAP não autenticado (não testa áreas logadas)
 - ⚠️ Dependency-Check (OWASP) desativado por performance
 """)
     
     report.add_header("Recomendações", 3)
     report.add("""
 **CURTO PRAZO:**
-1. Validar execução do OWASP ZAP com IP externo
-2. Adicionar timeout/retry para DAST
-3. Garantir geração de todos os relatórios
+1. Implementar scan ZAP autenticado para testar vulnerabilidades em áreas logadas
+2. Adicionar quality gates (falhar build em CVEs críticas)
+3. Configurar alertas de segurança automáticos
 
 **MÉDIO PRAZO:**
 4. Adicionar SAST específico para PHP (PHPStan, Psalm)
 5. Configurar NVD API key para OWASP Dependency-Check
-6. Implementar quality gates (falhar build em CVEs críticas)
+6. Implementar scan de secrets (TruffleHog, GitLeaks)
 
 **LONGO PRAZO:**
-7. Adicionar análise de secrets (TruffleHog, GitLeaks)
+7. Integrar com plataforma de gestão de vulnerabilidades (DefectDojo, etc.)
 8. Implementar fuzzing automatizado
 9. Integrar com plataforma de gestão de vulnerabilidades
 """)
