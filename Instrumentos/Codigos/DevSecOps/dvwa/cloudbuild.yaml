@@ -219,7 +219,7 @@ steps:
     waitFor:
       - 'get-external-ip'
 
-  # 9 Upload dos relatórios de segurança para bucket GCS
+  # 10 Upload dos relatórios de segurança para bucket GCS
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     id: 'upload-reports'
     entrypoint: 'bash'
@@ -228,9 +228,13 @@ steps:
       - |
         echo "=== Relatórios gerados ==="
         ls -la /workspace/reports/
+        # Nome da pasta: commit-YYYYMMDD-HHMMSS (ex: fbce037-20251212-183000)
+        FOLDER_NAME="$${SHORT_SHA}-$$(date +%Y%m%d-%H%M%S)"
         if [ -d "/workspace/reports" ]; then
-          gsutil -m cp -r /workspace/reports/* ${_REPORT_BUCKET}/$BUILD_ID/
-          echo "Relatórios salvos em: ${_REPORT_BUCKET}/$BUILD_ID/"
+          gsutil -m cp -r /workspace/reports/* ${_REPORT_BUCKET}/$$FOLDER_NAME/
+          echo "=============================================="
+          echo "Relatórios salvos em: ${_REPORT_BUCKET}/$$FOLDER_NAME/"
+          echo "=============================================="
         else
           echo "Nenhum relatório gerado."
         fi
@@ -241,7 +245,7 @@ steps:
       - 'checkov'
       - 'trivy'
 
-  # 10 Exibir IP externo do DVWA
+  # 11 Exibir IP externo do DVWA
   - name: 'gcr.io/cloud-builders/kubectl'
     id: 'get-service-ip'
     entrypoint: 'bash'
@@ -256,12 +260,6 @@ steps:
 
 images:
   - '${_REGION}-docker.pkg.dev/${_PROJECT_ID}/${_ARTIFACT_REPO}/${_APP_NAME}:$SHORT_SHA'
-
-artifacts:
-  objects:
-    location: '${_REPORT_BUCKET}/$BUILD_ID/'
-    paths:
-      - '/workspace/reports/*'
 
 options:
   dynamicSubstitutions: true
