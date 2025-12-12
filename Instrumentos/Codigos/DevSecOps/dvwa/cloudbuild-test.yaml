@@ -1,0 +1,10 @@
+# cloudbuild.yaml - TESTE MÍNIMO
+# Pipeline simplificado para testar a configuração
+
+steps:
+  - name: 'ubuntu'
+    id: 'test'
+    args: ['echo', 'Hello from Cloud Build!']
+
+options:
+  logging: CLOUD_LOGGING_ONLY

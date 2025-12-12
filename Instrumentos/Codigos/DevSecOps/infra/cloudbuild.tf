@@ -20,8 +20,8 @@ resource "google_cloudbuild_trigger" "devsecops_trigger" {
   location    = var.region
   project     = var.project_id
 
-  # Usar SA padrão do Cloud Build
-  service_account = "projects/${var.project_id}/serviceAccounts/${data.google_project.project.number}@cloudbuild.gserviceaccount.com"
+  # SA user-managed
+  service_account = google_service_account.cloudbuild.id
 
   repository_event_config {
     repository = google_cloudbuildv2_repository.repo.id
@@ -30,7 +30,7 @@ resource "google_cloudbuild_trigger" "devsecops_trigger" {
     }
   }
 
-  filename = "Instrumentos/Codigos/DevSecOps/dvwa/cloudbuild.yaml"
+  filename = "Instrumentos/Codigos/DevSecOps/dvwa/cloudbuild-test.yaml"
 
   substitutions = {
     _ARTIFACT_REPO = google_artifact_registry_repository.devsecops_repo.repository_id
@@ -38,5 +38,9 @@ resource "google_cloudbuild_trigger" "devsecops_trigger" {
     _PROJECT_ID    = var.project_id
   }
 
-  depends_on = [google_cloudbuildv2_repository.repo]
+  depends_on = [
+    google_cloudbuildv2_repository.repo,
+    google_service_account.cloudbuild,
+    google_service_account_iam_member.cloudbuild_trigger_token_creator
+  ]
 }
