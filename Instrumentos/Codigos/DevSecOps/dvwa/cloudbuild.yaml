@@ -164,7 +164,7 @@ artifacts:
     paths:
       - '/workspace/reports/*'
 
-logsBucket: '${_LOGS_BUCKET}'
+logsBucket: 'gs://infra-sd-service-cloudbuild-logs'
 
 options:
   dynamicSubstitutions: true
