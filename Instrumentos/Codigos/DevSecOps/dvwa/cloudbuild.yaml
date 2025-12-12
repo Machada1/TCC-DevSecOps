@@ -212,9 +212,10 @@ steps:
           sleep 10
         done
         
-        # Executar ZAP via Docker com volume montado
+        # Executar ZAP via Docker com volume montado (rodar como root para permissões)
         echo "Iniciando OWASP ZAP Baseline Scan..."
         docker run --rm \
+          -u 0 \
           -v /workspace/reports:/zap/wrk:rw \
           -t ghcr.io/zaproxy/zaproxy:stable \
           zap-baseline.py -t "$$TARGET_URL" -r zap-report.html -J zap-report.json -I || true
