@@ -6,4 +6,5 @@ steps:
     id: 'test'
     args: ['echo', 'Hello from Cloud Build!']
 
-logsBucket: 'infra-sd-service-cloudbuild-logs'
+options:
+  logging: NONE
