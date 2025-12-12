@@ -185,8 +185,8 @@ steps:
       - 'deploy'
 
   # 9 DAST com OWASP ZAP (testes dinâmicos de segurança)
-  # NOTA: A imagem mudou de owasp/zap2docker-stable para ghcr.io/zaproxy/zaproxy
-  - name: 'ghcr.io/zaproxy/zaproxy:stable'
+  # NOTA: Usa docker para montar /workspace/reports como /zap/wrk
+  - name: 'gcr.io/cloud-builders/docker'
     id: 'zap-scan'
     entrypoint: 'bash'
     args:
@@ -212,10 +212,15 @@ steps:
           sleep 10
         done
         
-        # Executar scan baseline do ZAP
+        # Executar ZAP via Docker com volume montado
         echo "Iniciando OWASP ZAP Baseline Scan..."
-        zap-baseline.py -t "$$TARGET_URL" -r /workspace/reports/zap-report.html -J /workspace/reports/zap-report.json -I || true
+        docker run --rm \
+          -v /workspace/reports:/zap/wrk:rw \
+          -t ghcr.io/zaproxy/zaproxy:stable \
+          zap-baseline.py -t "$$TARGET_URL" -r zap-report.html -J zap-report.json -I || true
+        
         echo "Scan ZAP concluído"
+        ls -la /workspace/reports/zap* 2>/dev/null || echo "Nenhum relatório ZAP encontrado"
     waitFor:
       - 'get-external-ip'
 
