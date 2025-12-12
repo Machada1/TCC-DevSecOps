@@ -15,13 +15,13 @@ resource "google_cloudbuildv2_repository" "repo" {
 
 # Trigger automático no push para master
 resource "google_cloudbuild_trigger" "devsecops_trigger" {
-  name        = "devsecops-cloudbuild-trigger"
+  name        = "devsecops-trigger-v2"
   description = "Trigger para build e deploy automatizado via Cloud Build"
   location    = var.region
   project     = var.project_id
 
-  # Service account user-managed (criada em reports-bucket.tf)
-  service_account = google_service_account.cloudbuild.id
+  # Usar SA padrão do Cloud Build
+  service_account = "projects/${var.project_id}/serviceAccounts/${data.google_project.project.number}@cloudbuild.gserviceaccount.com"
 
   repository_event_config {
     repository = google_cloudbuildv2_repository.repo.id
@@ -36,8 +36,7 @@ resource "google_cloudbuild_trigger" "devsecops_trigger" {
     _ARTIFACT_REPO = google_artifact_registry_repository.devsecops_repo.repository_id
     _REGION        = var.region
     _PROJECT_ID    = var.project_id
-    _LOGS_BUCKET   = "gs://${google_storage_bucket.cloudbuild_logs.name}"
   }
 
-  depends_on = [google_cloudbuildv2_repository.repo, google_service_account.cloudbuild, google_storage_bucket.cloudbuild_logs]
+  depends_on = [google_cloudbuildv2_repository.repo]
 }

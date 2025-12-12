@@ -165,5 +165,4 @@ artifacts:
       - '/workspace/reports/*'
 
 options:
-  logging: NONE
   dynamicSubstitutions: true
