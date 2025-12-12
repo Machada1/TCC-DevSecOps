@@ -47,6 +47,13 @@ resource "google_project_iam_member" "cloudbuild_gke" {
   member  = "serviceAccount:${google_service_account.cloudbuild.email}"
 }
 
+# Permitir acesso ao Secret Manager (necessário para conexão GitHub)
+resource "google_project_iam_member" "cloudbuild_secret_accessor" {
+  project = var.project_id
+  role    = "roles/secretmanager.secretAccessor"
+  member  = "serviceAccount:${google_service_account.cloudbuild.email}"
+}
+
 # Permitir gravar relatórios no bucket
 resource "google_storage_bucket_iam_member" "cloudbuild_write_reports" {
   bucket = google_storage_bucket.reports_bucket.name
