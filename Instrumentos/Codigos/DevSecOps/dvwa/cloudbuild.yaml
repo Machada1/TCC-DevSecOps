@@ -13,12 +13,23 @@ substitutions:
   _SOURCE_IMAGE: "vulnerables/web-dvwa:latest"
 
 steps:
+  # 0 Criar diretório de relatórios
+  - name: 'ubuntu'
+    id: 'setup'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        mkdir -p /workspace/reports/dependency-check
+        echo "Diretório de relatórios criado"
+
   # 1 Pull da imagem DVWA pública
   - name: 'gcr.io/cloud-builders/docker'
     id: 'pull-dvwa'
     args:
       - 'pull'
       - '${_SOURCE_IMAGE}'
+    waitFor: ['setup']
 
   # 2 Tag e push da imagem para o Artifact Registry
   - name: 'gcr.io/cloud-builders/docker'
