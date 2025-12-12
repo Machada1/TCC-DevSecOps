@@ -164,8 +164,7 @@ artifacts:
     paths:
       - '/workspace/reports/*'
 
-logsBucket: 'gs://infra-sd-service-cloudbuild-logs'
-
 options:
+  logging: CLOUD_LOGGING_ONLY
   dynamicSubstitutions: true
   logStreamingOption: STREAM_ON
