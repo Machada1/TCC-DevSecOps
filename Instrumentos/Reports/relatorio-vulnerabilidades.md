@@ -1,6 +1,6 @@
 # 📊 Análise Completa dos Relatórios de Segurança - Pipeline DevSecOps
 
-**Data:** 12/12/2025 17:22
+**Data:** 12/12/2025 17:38
 
 **Aplicação:** DVWA (Damn Vulnerable Web Application)
 
@@ -15,14 +15,14 @@
 | Trivy | Container Scan | 1575 | ✅ Executado |
 | Semgrep | SAST | 4 | ✅ Executado |
 | Trivy FS | SCA | 0 | ✅ Executado |
-| OWASP ZAP | DAST | 0 | ⚠️ Não gerado |
+| OWASP ZAP | DAST | 18 | ✅ Executado |
 | Checkov | IaC Scan | 63 | ✅ Executado |
 
-**Total de issues de segurança identificados: 1642**
+**Total de issues de segurança identificados: 1660**
 
 ## 1. 📦 Container Scan - Trivy
 
-**Imagem analisada:** `dvwa-app:901554b`
+**Imagem analisada:** `dvwa-app:4a6c28b`
 
 **Sistema Operacional:** debian 9.5
 
@@ -146,12 +146,123 @@
 
 ## 4. 🌐 DAST (Dynamic Application Security Testing) - OWASP ZAP
 
-⚠️ Relatório do OWASP ZAP não disponível.
+**Alvo:** `http://34.28.0.21`
 
-**Possíveis causas:**
-1. O ZAP não conseguiu acessar a aplicação
-2. O LoadBalancer não obteve IP externo a tempo
-3. A aplicação não estava pronta quando o scan iniciou
+**Total de alertas:** 18
+
+### Distribuição por Risco
+
+| Nível de Risco | Quantidade |
+| --- | --- |
+| Medium | 3 |
+| Low | 9 |
+| Informational | 6 |
+
+### Alertas Encontrados
+
+**🟠 Content Security Policy (CSP) Header Not Set**
+- Risco: Medium (High)
+- CWE: CWE-693
+- Descrição: Content Security Policy (CSP) is an added layer of security that helps to detect and mitigate certai...
+
+**🟠 Missing Anti-clickjacking Header**
+- Risco: Medium (Medium)
+- CWE: CWE-1021
+- Descrição: The response does not protect against 'ClickJacking' attacks. It should include either Content-Secur...
+
+**🟠 Source Code Disclosure - SQL**
+- Risco: Medium (Medium)
+- CWE: CWE-540
+- Descrição: Application Source Code was disclosed by the web server. - SQL ...
+
+**🟡 Cookie No HttpOnly Flag**
+- Risco: Low (Medium)
+- CWE: CWE-1004
+- Descrição: A cookie has been set without the HttpOnly flag, which means that the cookie can be accessed by Java...
+
+**🟡 Cookie without SameSite Attribute**
+- Risco: Low (Medium)
+- CWE: CWE-1275
+- Descrição: A cookie has been set without the SameSite attribute, which means that the cookie can be sent as a r...
+
+**🟡 Dangerous JS Functions**
+- Risco: Low (Low)
+- CWE: CWE-749
+- Descrição: A dangerous JS function seems to be in use that would leave the site vulnerable. ...
+
+**🟡 In Page Banner Information Leak**
+- Risco: Low (High)
+- CWE: CWE-497
+- Descrição: The server returned a version banner string in the response content. Such information leaks may allo...
+
+**🟡 Information Disclosure - Debug Error Messages**
+- Risco: Low (Medium)
+- CWE: CWE-1295
+- Descrição: The response appeared to contain common error messages returned by platforms such as ASP.NET, and We...
+
+**🟡 Insufficient Site Isolation Against Spectre Vulnerability**
+- Risco: Low (Medium)
+- CWE: CWE-693
+- Descrição: Cross-Origin-Resource-Policy header is an opt-in header designed to counter side-channels attacks li...
+
+**🟡 Permissions Policy Header Not Set**
+- Risco: Low (Medium)
+- CWE: CWE-693
+- Descrição: Permissions Policy Header is an added layer of security that helps to restrict from unauthorized acc...
+
+**🟡 Server Leaks Version Information via "Server" HTTP Response Header Field**
+- Risco: Low (High)
+- CWE: CWE-497
+- Descrição: The web/application server is leaking version information via the "Server" HTTP response header. Acc...
+
+**🟡 X-Content-Type-Options Header Missing**
+- Risco: Low (Medium)
+- CWE: CWE-693
+- Descrição: The Anti-MIME-Sniffing header X-Content-Type-Options was not set to 'nosniff'. This allows older ver...
+
+**🔵 Authentication Request Identified**
+- Risco: Informational (High)
+- CWE: CWE--1
+- Descrição: The given request has been identified as an authentication request. The 'Other Info' field contains ...
+
+**🔵 Information Disclosure - Suspicious Comments**
+- Risco: Informational (Medium)
+- CWE: CWE-615
+- Descrição: The response appears to contain suspicious comments which may help an attacker. ...
+
+**🔵 Non-Storable Content**
+- Risco: Informational (Medium)
+- CWE: CWE-524
+- Descrição: The response contents are not storable by caching components such as proxy servers. If the response ...
+
+**🔵 Session Management Response Identified**
+- Risco: Informational (Medium)
+- CWE: CWE--1
+- Descrição: The given response has been identified as containing a session management token. The 'Other Info' fi...
+
+**🔵 Storable and Cacheable Content**
+- Risco: Informational (Medium)
+- CWE: CWE-524
+- Descrição: The response contents are storable by caching components such as proxy servers, and may be retrieved...
+
+**🔵 Storable but Non-Cacheable Content**
+- Risco: Informational (Medium)
+- CWE: CWE-524
+- Descrição: The response contents are storable by caching components such as proxy servers, but will not be retr...
+
+### CWEs Detectados pelo DAST
+
+- **CWE-693**: 4 ocorrência(s)
+- **CWE-1021**: 1 ocorrência(s)
+- **CWE-540**: 1 ocorrência(s)
+- **CWE-1004**: 1 ocorrência(s)
+- **CWE-1275**: 1 ocorrência(s)
+- **CWE-749**: 1 ocorrência(s)
+- **CWE-497**: 2 ocorrência(s)
+- **CWE-1295**: 1 ocorrência(s)
+- **CWE--1**: 2 ocorrência(s)
+- **CWE-615**: 1 ocorrência(s)
+- **CWE-524**: 3 ocorrência(s)
 
 ## 5. 🏗️ IaC Scan - Checkov
 
@@ -191,9 +302,9 @@
 
 **Vulnerabilidades conhecidas do DVWA:** 17
 
-**Detectadas pelo pipeline:** 7 (41.2%)
+**Detectadas pelo pipeline:** 9 (52.9%)
 
-**Não detectadas:** 10 (58.8%)
+**Não detectadas:** 8 (47.1%)
 
 ### ✅ Vulnerabilidades Detectadas
 
@@ -205,6 +316,8 @@
 | CSRF | web_application | CWE-352 | Cross-Site Request Forgery... |
 | Weak Session IDs | web_application | CWE-330 | IDs de sessão previsíveis... |
 | Open HTTP Redirect | web_application | CWE-601 | Redirecionamento aberto para sites malic... |
+| JavaScript Attacks | web_application | CWE-749 | Exposição de lógica sensível no cliente... |
+| Content Security Policy Bypass | web_application | CWE-693 | Ausência ou bypass de CSP... |
 | Exposed MySQL | infrastructure | CWE-284 | MySQL com credenciais fracas... |
 
 
@@ -216,8 +329,6 @@
 | File Upload | web_application | CWE-434 | A04:2021 - Insecure Design |
 | Brute Force | web_application | CWE-307 | A07:2021 - Identification and  |
 | Insecure CAPTCHA | web_application | CWE-804 | A07:2021 - Identification and  |
-| JavaScript Attacks | web_application | CWE-749 | A05:2021 - Security Misconfigu |
-| Content Security Policy Bypass | web_application | CWE-693 | A05:2021 - Security Misconfigu |
 | Authorisation Bypass | web_application | CWE-639 | A01:2021 - Broken Access Contr |
 | Outdated OS | infrastructure | CWE-1104 | N/A |
 | Outdated Packages | infrastructure | CWE-1104 | N/A |
@@ -307,4 +418,4 @@ Para cobertura completa, é necessário:
 
 ---
 
-*Relatório gerado automaticamente em 12/12/2025 às 17:22:41*
+*Relatório gerado automaticamente em 12/12/2025 às 17:38:24*

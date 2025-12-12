@@ -1,2 +1,8 @@
 # Relatórios JSON gerados pelo pipeline (baixados do bucket)
 *.json
+
+# Relatório HTML do ZAP
+zap-report.html
+
+# Arquivo YAML do ZAP
+zap.yaml

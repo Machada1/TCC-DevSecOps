@@ -276,10 +276,12 @@ def analyze_zap():
     site = data.get('site', [])
     if isinstance(site, list) and len(site) > 0:
         site = site[0]
+    elif isinstance(site, list):
+        site = {}
     
-    analysis['target'] = site.get('@name', data.get('site', {}).get('@name', 'N/A')) if isinstance(site, dict) else 'N/A'
+    analysis['target'] = site.get('@name', 'N/A') if isinstance(site, dict) else 'N/A'
     
-    alerts = site.get('alerts', data.get('alerts', [])) if isinstance(site, dict) else data.get('alerts', [])
+    alerts = site.get('alerts', []) if isinstance(site, dict) else data.get('alerts', [])
     if isinstance(alerts, dict):
         alerts = alerts.get('alertitem', [])
     
