@@ -96,13 +96,20 @@ steps:
   # 5 IaC Scan (Terraform) com Checkov
   - name: 'bridgecrew/checkov:latest'
     id: 'checkov'
+    entrypoint: 'bash'
     args:
-      - '-d'
-      - './infra'
-      - '-o'
-      - 'json'
-      - '--output-file-path'
-      - '/workspace/reports/checkov-report.json'
+      - '-c'
+      - |
+        # Escaneia tanto o Terraform quanto os manifests Kubernetes
+        checkov -d ./Instrumentos/Codigos/DevSecOps/infra -o json > /workspace/reports/checkov-terraform.json || true
+        checkov -d ./Instrumentos/Codigos/DevSecOps/dvwa/k8s -o json > /workspace/reports/checkov-k8s.json || true
+        # Combina os relatórios
+        echo '{"terraform": ' > /workspace/reports/checkov-report.json
+        cat /workspace/reports/checkov-terraform.json >> /workspace/reports/checkov-report.json
+        echo ', "kubernetes": ' >> /workspace/reports/checkov-report.json
+        cat /workspace/reports/checkov-k8s.json >> /workspace/reports/checkov-report.json
+        echo '}' >> /workspace/reports/checkov-report.json
+        echo "Checkov scan completo"
     waitFor:
       - 'push'
 
@@ -151,7 +158,33 @@ steps:
     waitFor:
       - 'deploy-mysql'
 
-  # 8 DAST com OWASP ZAP (testes dinâmicos de segurança)
+  # 8 Obter IP externo do serviço para DAST
+  - name: 'gcr.io/cloud-builders/kubectl'
+    id: 'get-external-ip'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        gcloud container clusters get-credentials ${_CLUSTER_NAME} --region ${_REGION} --project ${_PROJECT_ID}
+        echo "Aguardando LoadBalancer obter IP externo..."
+        for i in {1..30}; do
+          EXTERNAL_IP=$(kubectl get svc dvwa-service -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null)
+          if [ -n "$EXTERNAL_IP" ] && [ "$EXTERNAL_IP" != "" ]; then
+            echo "IP externo obtido: $EXTERNAL_IP"
+            echo "$EXTERNAL_IP" > /workspace/external_ip.txt
+            break
+          fi
+          echo "Tentativa $i/30 - Aguardando IP..."
+          sleep 10
+        done
+        if [ ! -f /workspace/external_ip.txt ]; then
+          echo "ERRO: Não foi possível obter IP externo"
+          echo "UNAVAILABLE" > /workspace/external_ip.txt
+        fi
+    waitFor:
+      - 'deploy'
+
+  # 9 DAST com OWASP ZAP (testes dinâmicos de segurança)
   # NOTA: A imagem mudou de owasp/zap2docker-stable para ghcr.io/zaproxy/zaproxy
   - name: 'ghcr.io/zaproxy/zaproxy:stable'
     id: 'zap-scan'
@@ -159,13 +192,32 @@ steps:
     args:
       - '-c'
       - |
+        EXTERNAL_IP=$(cat /workspace/external_ip.txt)
+        if [ "$EXTERNAL_IP" = "UNAVAILABLE" ]; then
+          echo "ERRO: IP externo não disponível, pulando scan DAST"
+          echo '{"error": "IP externo não disponível"}' > /workspace/reports/zap-report.json
+          exit 0
+        fi
+        TARGET_URL="http://${EXTERNAL_IP}"
+        echo "Alvo do scan DAST: $TARGET_URL"
+        
         # Aguardar app ficar disponível
-        echo "Aguardando DVWA ficar disponível..."
-        sleep 60
+        echo "Verificando se DVWA está acessível..."
+        for i in {1..12}; do
+          if curl -s --connect-timeout 5 "$TARGET_URL" > /dev/null 2>&1; then
+            echo "DVWA está acessível!"
+            break
+          fi
+          echo "Tentativa $i/12 - Aguardando DVWA..."
+          sleep 10
+        done
+        
         # Executar scan baseline do ZAP
-        zap-baseline.py -t http://dvwa-service.default.svc.cluster.local:80 -r /workspace/reports/zap-report.html -J /workspace/reports/zap-report.json || true
+        echo "Iniciando OWASP ZAP Baseline Scan..."
+        zap-baseline.py -t "$TARGET_URL" -r /workspace/reports/zap-report.html -J /workspace/reports/zap-report.json -I || true
+        echo "Scan ZAP concluído"
     waitFor:
-      - 'deploy'
+      - 'get-external-ip'
 
   # 9 Upload dos relatórios de segurança para bucket GCS
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
