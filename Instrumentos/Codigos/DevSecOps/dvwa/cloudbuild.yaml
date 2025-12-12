@@ -62,7 +62,7 @@ steps:
       - 'push'
 
   # 4 SCA - Análise de Composição de Software
-  
+
   # NOTA: OWASP Dependency-Check comentado pois sem NVD API Key o download
   # da base de vulnerabilidades leva várias horas, inviabilizando o pipeline.
   # Para usar, obtenha uma API key gratuita em: https://nvd.nist.gov/developers/request-an-api-key
@@ -152,13 +152,18 @@ steps:
       - 'deploy-mysql'
 
   # 8 DAST com OWASP ZAP (testes dinâmicos de segurança)
-  - name: 'owasp/zap2docker-stable'
+  # NOTA: A imagem mudou de owasp/zap2docker-stable para ghcr.io/zaproxy/zaproxy
+  - name: 'ghcr.io/zaproxy/zaproxy:stable'
     id: 'zap-scan'
     entrypoint: 'bash'
     args:
       - '-c'
       - |
-        zap-baseline.py -t http://${_APP_NAME}.default.svc.cluster.local:80 -r /workspace/reports/zap-report.html || true
+        # Aguardar app ficar disponível
+        echo "Aguardando DVWA ficar disponível..."
+        sleep 60
+        # Executar scan baseline do ZAP
+        zap-baseline.py -t http://dvwa-service.default.svc.cluster.local:80 -r /workspace/reports/zap-report.html -J /workspace/reports/zap-report.json || true
     waitFor:
       - 'deploy'
 
@@ -169,13 +174,20 @@ steps:
     args:
       - '-c'
       - |
+        echo "=== Relatórios gerados ==="
+        ls -la /workspace/reports/
         if [ -d "/workspace/reports" ]; then
           gsutil -m cp -r /workspace/reports/* ${_REPORT_BUCKET}/$BUILD_ID/
+          echo "Relatórios salvos em: ${_REPORT_BUCKET}/$BUILD_ID/"
         else
           echo "Nenhum relatório gerado."
         fi
     waitFor:
       - 'zap-scan'
+      - 'semgrep'
+      - 'sca-scan'
+      - 'checkov'
+      - 'trivy'
 
   # 10 Exibir IP externo do DVWA
   - name: 'gcr.io/cloud-builders/kubectl'
