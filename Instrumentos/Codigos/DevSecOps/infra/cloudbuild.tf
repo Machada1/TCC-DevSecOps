@@ -20,8 +20,8 @@ resource "google_cloudbuild_trigger" "devsecops_trigger" {
   location    = var.region
   project     = var.project_id
 
-  # Service account padrão do Cloud Build
-  service_account = "projects/${var.project_id}/serviceAccounts/${data.google_project.project.number}@cloudbuild.gserviceaccount.com"
+  # Service account user-managed (criada em reports-bucket.tf)
+  service_account = google_service_account.cloudbuild.id
 
   repository_event_config {
     repository = google_cloudbuildv2_repository.repo.id
@@ -38,5 +38,5 @@ resource "google_cloudbuild_trigger" "devsecops_trigger" {
     _PROJECT_ID    = var.project_id
   }
 
-  depends_on = [google_cloudbuildv2_repository.repo]
+  depends_on = [google_cloudbuildv2_repository.repo, google_service_account.cloudbuild]
 }

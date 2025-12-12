@@ -37,7 +37,7 @@ Este projeto pode ser replicado seguindo os passos abaixo:
 ```bash
 cd infra
 ```
-2. No arquivo `variables.tf` ajuste o project_id para o projeto que será utilizado no gcp.
+2. No arquivo `terraform.tfvars` ajuste o project_id para o projeto que será utilizado no gcp.
 
 3. Inicialize o Terraform:
 
@@ -93,7 +93,7 @@ docker run -d -p 8080:80 vulnerables/web-dvwa
 
 ### Configuração do Cloud Build
 
-1. Verifique o arquivo `cloudbuild.yaml` na pasta "/app" do projeto.
+1. Verifique o arquivo `cloudbuild.yaml` na pasta "/k8s" do projeto.
 2. Ajuste as substituições:
 
 ```yaml
