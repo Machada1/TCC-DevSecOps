@@ -6,4 +6,4 @@ steps:
     id: 'test'
     args: ['echo', 'Hello from Cloud Build!']
 
-logsBucket: 'gs://infra-sd-service-cloudbuild-logs'
+logsBucket: 'infra-sd-service-cloudbuild-logs'
