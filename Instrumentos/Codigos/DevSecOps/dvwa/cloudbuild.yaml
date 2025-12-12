@@ -61,16 +61,35 @@ steps:
     waitFor:
       - 'push'
 
-  # 4 SCA com OWASP Dependency-Check (análise de dependências)
-  - name: 'owasp/dependency-check'
-    id: 'dependency-check'
+  # 4 SCA - Análise de Composição de Software
+  
+  # NOTA: OWASP Dependency-Check comentado pois sem NVD API Key o download
+  # da base de vulnerabilidades leva várias horas, inviabilizando o pipeline.
+  # Para usar, obtenha uma API key gratuita em: https://nvd.nist.gov/developers/request-an-api-key
+  # e adicione o argumento: '--nvdApiKey', '${_NVD_API_KEY}'
+  #
+  # - name: 'owasp/dependency-check'
+  #   id: 'dependency-check'
+  #   args:
+  #     - '--scan'
+  #     - '.'
+  #     - '--format'
+  #     - 'ALL'
+  #     - '--out'
+  #     - '/workspace/reports/dependency-check'
+  #   waitFor:
+  #     - 'push'
+  
+  # Alternativa: Trivy FS para SCA (mais rápido, usa base própria)
+  - name: 'aquasec/trivy'
+    id: 'sca-scan'
     args:
-      - '--scan'
-      - '.'
+      - 'fs'
       - '--format'
-      - 'ALL'
-      - '--out'
-      - '/workspace/reports/dependency-check'
+      - 'json'
+      - '--output'
+      - '/workspace/reports/trivy-sca-report.json'
+      - '.'
     waitFor:
       - 'push'
 
@@ -108,7 +127,7 @@ steps:
       - '-c'
       - |
         gcloud container clusters get-credentials ${_CLUSTER_NAME} --region ${_REGION} --project ${_PROJECT_ID}
-        kubectl apply -f k8s/mysql.yaml
+        kubectl apply -f Instrumentos/Codigos/DevSecOps/dvwa/k8s/mysql.yaml
         echo "Aguardando o MySQL iniciar..."
         sleep 30
     waitFor:
@@ -124,9 +143,9 @@ steps:
       - |
         gcloud container clusters get-credentials ${_CLUSTER_NAME} --region ${_REGION} --project ${_PROJECT_ID}
         # Substituir placeholder da imagem no YAML
-        sed -i "s|us-central1-docker.pkg.dev/PROJECT_ID/artifact-repo/dvwa-app:latest|${_REGION}-docker.pkg.dev/${_PROJECT_ID}/${_ARTIFACT_REPO}/${_APP_NAME}:$SHORT_SHA|g" k8s/dvwa.yaml
+        sed -i "s|us-central1-docker.pkg.dev/PROJECT_ID/artifact-repo/dvwa-app:latest|${_REGION}-docker.pkg.dev/${_PROJECT_ID}/${_ARTIFACT_REPO}/${_APP_NAME}:$SHORT_SHA|g" Instrumentos/Codigos/DevSecOps/dvwa/k8s/dvwa.yaml
         # Aplicar o deployment
-        kubectl apply -f k8s/dvwa.yaml
+        kubectl apply -f Instrumentos/Codigos/DevSecOps/dvwa/k8s/dvwa.yaml
         echo "Aguardando pods ficarem prontos..."
         kubectl rollout status deployment/${_DEPLOYMENT_NAME} --timeout=120s
     waitFor:
