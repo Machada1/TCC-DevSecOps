@@ -1,0 +1,16 @@
+{
+  "SchemaVersion": 2,
+  "ReportID": "019b13d7-7317-7932-8fd9-57398efdf45e",
+  "CreatedAt": "2025-12-12T18:34:05.463606989Z",
+  "ArtifactID": "sha256:6b331883a4ee4bb98296148e6ecc15da07dacfb8dc441bc6825cc48310f65134",
+  "ArtifactName": ".",
+  "ArtifactType": "repository",
+  "Metadata": {
+    "RepoURL": "https://github.com/Machada1/devsecops-guilherme-machado.git",
+    "Branch": "master",
+    "Commit": "fbce03752ed7ffda68b0cabef7b2e2d805f0a3a9",
+    "CommitMsg": "fix: corrigir imagem OWASP ZAP (ghcr.io/zaproxy/zaproxy) e upload de relatórios",
+    "Author": "Machado \u003cguilherme_henriqueoh@live.com\u003e",
+    "Committer": "Machado \u003cguilherme_henriqueoh@live.com\u003e"
+  }
+}

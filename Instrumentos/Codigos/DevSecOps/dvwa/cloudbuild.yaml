@@ -168,13 +168,13 @@ steps:
         gcloud container clusters get-credentials ${_CLUSTER_NAME} --region ${_REGION} --project ${_PROJECT_ID}
         echo "Aguardando LoadBalancer obter IP externo..."
         for i in {1..30}; do
-          EXTERNAL_IP=$(kubectl get svc dvwa-service -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null)
-          if [ -n "$EXTERNAL_IP" ] && [ "$EXTERNAL_IP" != "" ]; then
-            echo "IP externo obtido: $EXTERNAL_IP"
-            echo "$EXTERNAL_IP" > /workspace/external_ip.txt
+          EXTERNAL_IP=$$(kubectl get svc dvwa-service -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null)
+          if [ -n "$$EXTERNAL_IP" ] && [ "$$EXTERNAL_IP" != "" ]; then
+            echo "IP externo obtido: $$EXTERNAL_IP"
+            echo "$$EXTERNAL_IP" > /workspace/external_ip.txt
             break
           fi
-          echo "Tentativa $i/30 - Aguardando IP..."
+          echo "Tentativa $$i/30 - Aguardando IP..."
           sleep 10
         done
         if [ ! -f /workspace/external_ip.txt ]; then
@@ -192,29 +192,29 @@ steps:
     args:
       - '-c'
       - |
-        EXTERNAL_IP=$(cat /workspace/external_ip.txt)
-        if [ "$EXTERNAL_IP" = "UNAVAILABLE" ]; then
+        EXTERNAL_IP=$$(cat /workspace/external_ip.txt)
+        if [ "$$EXTERNAL_IP" = "UNAVAILABLE" ]; then
           echo "ERRO: IP externo não disponível, pulando scan DAST"
           echo '{"error": "IP externo não disponível"}' > /workspace/reports/zap-report.json
           exit 0
         fi
-        TARGET_URL="http://${EXTERNAL_IP}"
-        echo "Alvo do scan DAST: $TARGET_URL"
+        TARGET_URL="http://$$EXTERNAL_IP"
+        echo "Alvo do scan DAST: $$TARGET_URL"
         
         # Aguardar app ficar disponível
         echo "Verificando se DVWA está acessível..."
         for i in {1..12}; do
-          if curl -s --connect-timeout 5 "$TARGET_URL" > /dev/null 2>&1; then
+          if curl -s --connect-timeout 5 "$$TARGET_URL" > /dev/null 2>&1; then
             echo "DVWA está acessível!"
             break
           fi
-          echo "Tentativa $i/12 - Aguardando DVWA..."
+          echo "Tentativa $$i/12 - Aguardando DVWA..."
           sleep 10
         done
         
         # Executar scan baseline do ZAP
         echo "Iniciando OWASP ZAP Baseline Scan..."
-        zap-baseline.py -t "$TARGET_URL" -r /workspace/reports/zap-report.html -J /workspace/reports/zap-report.json -I || true
+        zap-baseline.py -t "$$TARGET_URL" -r /workspace/reports/zap-report.html -J /workspace/reports/zap-report.json -I || true
         echo "Scan ZAP concluído"
     waitFor:
       - 'get-external-ip'
