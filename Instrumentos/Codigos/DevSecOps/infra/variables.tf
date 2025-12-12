@@ -1,7 +1,6 @@
 variable "project_id" {
   description = "ID do projeto no GCP"
   type        = string
-  default = "value"
 }
 
 variable "region" {
@@ -42,6 +41,11 @@ variable "github_owner" {
 variable "github_repo" {
   description = "Nome do repositório GitHub conectado ao Cloud Build"
   type        = string
-  default = "pco-si-2025-2-tipesq-3157101-devsecops-guilherme-machado"
+}
+
+variable "github_connection_name" {
+  description = "Nome da conexão GitHub criada no Cloud Build (Cloud Build > Connections)"
+  type        = string
+  default     = "devsecops"
 }
 

@@ -8,6 +8,8 @@ resource "google_container_cluster" "primary" {
   initial_node_count       = 1
 
   ip_allocation_policy {}
+  deletion_protection = false
+  depends_on = [google_project_service.container]
 }
 
 resource "google_container_node_pool" "primary_nodes" {
