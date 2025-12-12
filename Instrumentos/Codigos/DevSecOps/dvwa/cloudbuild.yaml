@@ -165,6 +165,5 @@ artifacts:
       - '/workspace/reports/*'
 
 options:
-  logging: CLOUD_LOGGING_ONLY
+  logging: NONE
   dynamicSubstitutions: true
-  logStreamingOption: STREAM_ON
