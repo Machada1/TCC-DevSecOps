@@ -218,7 +218,7 @@ steps:
           -u 0 \
           -v /workspace/reports:/zap/wrk:rw \
           -t ghcr.io/zaproxy/zaproxy:stable \
-          zap-baseline.py -t "$$TARGET_URL" -r zap-report.html -J zap-report.json -I || true
+          zap-full-scan.py -t "$$TARGET_URL" -r zap-report.html -J zap-report.json -I || true
         
         echo "Scan ZAP concluído"
         ls -la /workspace/reports/zap* 2>/dev/null || echo "Nenhum relatório ZAP encontrado"
