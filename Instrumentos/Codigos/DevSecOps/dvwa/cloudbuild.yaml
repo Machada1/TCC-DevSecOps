@@ -123,7 +123,12 @@ steps:
       - '-c'
       - |
         gcloud container clusters get-credentials ${_CLUSTER_NAME} --region ${_REGION} --project ${_PROJECT_ID}
-        kubectl set image deployment/${_DEPLOYMENT_NAME} ${_APP_NAME}=${_REGION}-docker.pkg.dev/${_PROJECT_ID}/${_ARTIFACT_REPO}/${_APP_NAME}:$SHORT_SHA --record
+        # Substituir placeholder da imagem no YAML
+        sed -i "s|us-central1-docker.pkg.dev/PROJECT_ID/artifact-repo/dvwa-app:latest|${_REGION}-docker.pkg.dev/${_PROJECT_ID}/${_ARTIFACT_REPO}/${_APP_NAME}:$SHORT_SHA|g" k8s/dvwa.yaml
+        # Aplicar o deployment
+        kubectl apply -f k8s/dvwa.yaml
+        echo "Aguardando pods ficarem prontos..."
+        kubectl rollout status deployment/${_DEPLOYMENT_NAME} --timeout=120s
     waitFor:
       - 'deploy-mysql'
 
