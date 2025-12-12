@@ -36,7 +36,8 @@ resource "google_cloudbuild_trigger" "devsecops_trigger" {
     _ARTIFACT_REPO = google_artifact_registry_repository.devsecops_repo.repository_id
     _REGION        = var.region
     _PROJECT_ID    = var.project_id
+    _LOGS_BUCKET   = "gs://${google_storage_bucket.cloudbuild_logs.name}"
   }
 
-  depends_on = [google_cloudbuildv2_repository.repo, google_service_account.cloudbuild]
+  depends_on = [google_cloudbuildv2_repository.repo, google_service_account.cloudbuild, google_storage_bucket.cloudbuild_logs]
 }
