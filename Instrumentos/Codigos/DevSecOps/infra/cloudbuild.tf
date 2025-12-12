@@ -30,7 +30,7 @@ resource "google_cloudbuild_trigger" "devsecops_trigger" {
     }
   }
 
-  filename = "Instrumentos/Codigos/DevSecOps/dvwa/cloudbuild-test.yaml"
+  filename = "Instrumentos/Codigos/DevSecOps/dvwa/cloudbuild.yaml"
 
   substitutions = {
     _ARTIFACT_REPO = google_artifact_registry_repository.devsecops_repo.repository_id
