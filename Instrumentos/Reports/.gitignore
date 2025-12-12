@@ -1,0 +1,5 @@
+# Relatórios JSON gerados pelo pipeline (baixados do bucket)
+*.json
+
+# Relatório Markdown gerado pelo script de análise
+relatorio.md

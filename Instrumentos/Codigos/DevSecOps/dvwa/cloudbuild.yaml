@@ -228,12 +228,11 @@ steps:
       - |
         echo "=== Relatórios gerados ==="
         ls -la /workspace/reports/
-        # Nome da pasta: commit-YYYYMMDD-HHMMSS (ex: fbce037-20251212-183000)
-        FOLDER_NAME="$${SHORT_SHA}-$$(date +%Y%m%d-%H%M%S)"
+        # Nome da pasta: reports-<commit> (ex: reports-fbce037)
         if [ -d "/workspace/reports" ]; then
-          gsutil -m cp -r /workspace/reports/* ${_REPORT_BUCKET}/$$FOLDER_NAME/
+          gsutil -m cp -r /workspace/reports/* ${_REPORT_BUCKET}/reports-${SHORT_SHA}/
           echo "=============================================="
-          echo "Relatórios salvos em: ${_REPORT_BUCKET}/$$FOLDER_NAME/"
+          echo "Relatórios salvos em: ${_REPORT_BUCKET}/reports-${SHORT_SHA}/"
           echo "=============================================="
         else
           echo "Nenhum relatório gerado."
