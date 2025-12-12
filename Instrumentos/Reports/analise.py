@@ -731,38 +731,51 @@ def generate_report():
     report.add()
     
     report.add_header("❌ Vulnerabilidades Não Detectadas", 3)
+    explicacoes = {
+        'CWE-89': "Requer ataque ativo (não detectado por DAST baseline). ZAP baseline não executa SQLi.",
+        'CWE-79': "Requer ataque ativo (não detectado por DAST baseline). ZAP baseline não executa XSS.",
+        'CWE-98': "Requer ataque ativo e interação autenticada. ZAP baseline não executa LFI/RFI.",
+        'CWE-434': "Requer upload de arquivo e interação autenticada. ZAP baseline não executa File Upload.",
+        'CWE-352': "Requer interação autenticada e envio de requests forjados (CSRF).",
+        'CWE-330': "Requer análise de tokens de sessão após login. ZAP baseline não testa autenticação.",
+        'CWE-307': "Requer tentativa de brute force em login. ZAP baseline não executa brute force.",
+        'CWE-804': "Requer interação com CAPTCHA. ZAP baseline não testa CAPTCHA.",
+        'CWE-639': "Requer acesso a áreas restritas e manipulação de permissões.",
+        'CWE-749': "Requer análise de código JS da aplicação. SAST não cobre código PHP/JS do DVWA.",
+        'CWE-693': "Pode ser detectado por DAST. Se não foi, o header CSP pode estar parcialmente presente ou a regra do ZAP não foi acionada.",
+        'CWE-1104': "Detectado por Trivy (Outdated OS/Packages).",
+        'CWE-798': "Requer tentativa de login com credenciais padrão. ZAP baseline não executa brute force.",
+    }
     if coverage['not_detected']:
         report.add_table(
-            ["Vulnerabilidade", "Categoria", "CWE", "OWASP"],
-            [[v['name'], v['category'], v['cwe'], v.get('owasp', 'N/A')[:30] if v.get('owasp') else 'N/A'] for v in coverage['not_detected']]
+            ["Vulnerabilidade", "Categoria", "CWE", "OWASP", "Motivo não detectada"],
+            [
+                [
+                    v['name'],
+                    v['category'],
+                    v['cwe'],
+                    v.get('owasp', 'N/A')[:30] if v.get('owasp') else 'N/A',
+                    explicacoes.get(v['cwe'], "Cobertura limitada pelo tipo de teste automatizado atual.")
+                ]
+                for v in coverage['not_detected']
+            ]
         )
     report.add()
-    
+
     report.add_header("Análise da Cobertura", 3)
     report.add("""
-As vulnerabilidades não detectadas são predominantemente:
+As vulnerabilidades não detectadas são, em sua maioria, vulnerabilidades web que:
+- Requerem autenticação para serem exploradas (ex: SQLi, XSS, File Upload, Brute Force, CSRF)
+- Ou requerem ataques ativos (ex: SQLi, XSS, Command Injection) que não são realizados pelo ZAP baseline scan.
 
-1. **VULNERABILIDADES WEB (SQL Injection, XSS, etc.)**
-   - Requerem análise DINÂMICA (DAST) com a aplicação em execução
-   - O SAST analisou arquivos de configuração, não código PHP do DVWA
+**Motivos principais:**
+- O ZAP baseline só faz passive scan em páginas públicas, não executa ataques ativos nem testa áreas autenticadas.
+- SAST/SCA/IaC não analisam código PHP da aplicação DVWA.
 
-2. **FALHAS DE AUTENTICAÇÃO (Brute Force, Weak Session IDs)**
-   - Requerem testes comportamentais da aplicação
-
-3. **FALHAS DE AUTORIZAÇÃO (CSRF, Authorization Bypass)**
-   - Requerem interação HTTP real com a aplicação
-
-**📌 CONCLUSÃO:**
-
-O pipeline atual é eficaz para:
-- ✅ Vulnerabilidades de infraestrutura (Container, OS)
-- ✅ Misconfigurações (Kubernetes, Terraform, IaC)
-- ✅ Dependências vulneráveis (SCA)
-- ✅ Testes dinâmicos de segurança (DAST com OWASP ZAP)
-
-Para maior cobertura, considerar:
-- ⚠️ Adicionar SAST específico para PHP (linguagem do DVWA)
-- ⚠️ Executar scan ZAP autenticado para testar áreas protegidas
+**Como aumentar a cobertura:**
+- Configurar o ZAP para scan autenticado (login automático)
+- Usar o modo full/active scan do ZAP
+- Adicionar SAST específico para PHP
 """)
     
     # ========================================================================
