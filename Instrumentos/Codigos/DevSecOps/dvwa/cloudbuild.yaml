@@ -4,13 +4,13 @@
 substitutions:
   _ARTIFACT_REPO: "devsecops-repo"
   _REGION: "us-central1"
-  _PROJECT_ID: "infra-sd-service"    # substituir pelo ID real do projeto
+  _PROJECT_ID: "infra-sd-service"
   _CLUSTER_NAME: "devsecops-cluster"
   _APP_NAME: "dvwa-app"
   _DEPLOYMENT_NAME: "dvwa-app"
-  _REPORT_BUCKET: "gs://devsecops-reports"   # bucket opcional p/ salvar relatórios
-  _SOURCE_IMAGE: "vulnerables/web-dvwa:latest"  # imagem base do Docker Hub
- 
+  _REPORT_BUCKET: "gs://devsecops-reports-dvwa"
+  _LOGS_BUCKET: "gs://infra-sd-service-cloudbuild-logs"
+  _SOURCE_IMAGE: "vulnerables/web-dvwa:latest"
 
 steps:
   # 1 Pull da imagem DVWA pública
@@ -164,7 +164,8 @@ artifacts:
     paths:
       - '/workspace/reports/*'
 
+logsBucket: '${_LOGS_BUCKET}'
+
 options:
-  logging: CLOUD_LOGGING_ONLY
   dynamicSubstitutions: true
   logStreamingOption: STREAM_ON
