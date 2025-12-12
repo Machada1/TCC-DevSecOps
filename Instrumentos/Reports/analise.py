@@ -825,7 +825,7 @@ Para cobertura completa, é necessário:
     report.add(f"*Relatório gerado automaticamente em {datetime.now().strftime('%d/%m/%Y às %H:%M:%S')}*")
     
     # Salvar relatório
-    report.save("relatorio.md")
+    report.save("relatorio-vulnerabilidades.md")
     
     return report
 
@@ -836,4 +836,4 @@ if __name__ == '__main__':
     print()
     generate_report()
     print()
-    print("✅ Arquivo gerado: relatorio.md")
+    print("✅ Arquivo gerado: relatorio-vulnerabilidades.md")
