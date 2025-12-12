@@ -1,5 +1,5 @@
 # Projeto GCP para os recursos
-project_id = "infra-sd-service"
+project_id = "infra-sd-host"
 
 # Região e zona do GCP para implantação de recursos
 region = "us-central1"
