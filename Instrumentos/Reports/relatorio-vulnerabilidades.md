@@ -1,6 +1,6 @@
 # 📊 Análise Completa dos Relatórios de Segurança - Pipeline DevSecOps
 
-**Data:** 16/12/2025 18:04
+**Data:** 16/12/2025 18:09
 
 **Aplicação:** DVWA (Damn Vulnerable Web Application)
 
@@ -482,9 +482,9 @@ O teste de força bruta não encontrou credenciais fracas ou o teste não conseg
 Cobertura do pipeline: **11/17** vulnerabilidades conhecidas detectadas (**64.7%**)
 
 Principais motivos para não detecção:
-- Requer brute force/login automatizado.
 - Requer interação humana ou automação avançada.
 - Requer autenticação e/ou ataque ativo.
+- Requer brute force/login automatizado.
 
 Sugestões para aumentar a cobertura:
 - Adicionar ZAP autenticado/active scan na pipeline.
@@ -542,9 +542,9 @@ Sugestões para aumentar a cobertura:
 **Não detectadas:** 6 (35.3%)
 
 **Motivos para não detecção:**
-- Requer brute force/login automatizado.
 - Requer interação humana ou automação avançada.
 - Requer autenticação e/ou ataque ativo.
+- Requer brute force/login automatizado.
 
 ### Recomendações Baseadas nos Resultados
 
@@ -557,4 +557,4 @@ Sugestões para aumentar a cobertura:
 
 ---
 
-*Relatório gerado automaticamente em 16/12/2025 às 18:04:30*
+*Relatório gerado automaticamente em 16/12/2025 às 18:09:02*

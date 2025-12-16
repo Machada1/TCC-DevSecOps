@@ -517,23 +517,8 @@ def compare_with_known_vulnerabilities(trivy_analysis, semgrep_analysis, zap_ana
             detected_cwes.add(cwe)
             cwe_to_tool[cwe] = 'Trivy (Container)'
 
-    # Trivy SCA
-    trivy_sca = None
-    try:
-        from inspect import currentframe
-        frame = currentframe()
-        trivy_sca = frame.f_back.f_locals.get('trivy_sca', None)
-    except Exception:
-        trivy_sca = None
-    if not trivy_sca:
-        try:
-            import builtins
-            trivy_sca = getattr(builtins, 'trivy_sca', None)
-        except Exception:
-            trivy_sca = None
-    if trivy_sca:
-        # SCA não traz CWE por padrão, mas pode ser extendido se necessário
-        pass
+    # Trivy SCA - Não traz CWE por padrão, mas pode ser extendido se necessário
+    # A análise SCA é feita separadamente em analyze_trivy_sca()
 
     # Semgrep
     if semgrep_analysis:
@@ -556,27 +541,8 @@ def compare_with_known_vulnerabilities(trivy_analysis, semgrep_analysis, zap_ana
             detected_cwes.add(cwe)
             cwe_to_tool[cwe] = 'OWASP ZAP (Active Scan)'
 
-    # Checkov
-    checkov = None
-    try:
-        from inspect import currentframe
-        frame = currentframe()
-        checkov = frame.f_back.f_locals.get('checkov', None)
-    except Exception:
-        checkov = None
-    if not checkov:
-        try:
-            import builtins
-            checkov = getattr(builtins, 'checkov', None)
-        except Exception:
-            checkov = None
-    if checkov:
-        for finding in checkov.get('findings', []):
-            cwe = finding.get('check_id', '')
-            # Checkov check_id pode não ser um CWE, mas se for, adiciona
-            if cwe.startswith('CWE-'):
-                detected_cwes.add(cwe)
-                cwe_to_tool[cwe] = 'Checkov'
+    # Checkov - check_id geralmente não é CWE, então não adicionamos aqui
+    # O Checkov detecta problemas de IaC, não vulnerabilidades de aplicação web
     
     # Hydra - Brute Force
     # Se o Hydra foi executado (mesmo sem encontrar vuln), considerar CWE-307 (Brute Force) como testado

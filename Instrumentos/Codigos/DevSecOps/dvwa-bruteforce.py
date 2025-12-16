@@ -277,7 +277,7 @@ def run_bruteforce(target_ip, output_file):
 if __name__ == '__main__':
     if len(sys.argv) < 3:
         print(f"Uso: {sys.argv[0]} <target_ip> <output_file>")
-        print(f"Exemplo: {sys.argv[0]} 34.9.5.224 /workspace/reports/hydra-bruteforce.json")
+        print(f"Exemplo: {sys.argv[0]} <IP_DO_DVWA> /workspace/reports/hydra-bruteforce.json")
         sys.exit(1)
     
     target_ip = sys.argv[1]

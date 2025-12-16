@@ -140,9 +140,9 @@ gcloud builds submit --config Instrumentos/Codigos/DevSecOps/dvwa/cloudbuild.yam
 | 8 | `deploy-mysql` | kubectl | Deploy do MySQL no GKE |
 | 9 | `deploy` | kubectl | Deploy do DVWA no GKE |
 | 10 | `get-external-ip` | kubectl | Obtém IP externo do LoadBalancer |
-| 11 | `zap-scan` | OWASP ZAP | **DAST** - Full Scan (não autenticado) |
-| 12 | `zap-auth-active-scan` | OWASP ZAP | **DAST** - Active Scan autenticado |
-| 13 | `hydra-bruteforce` | Hydra | **Brute Force** - Teste de força bruta |
+| 11 | `zap-scan` | OWASP ZAP | **DAST** - Baseline Scan (não autenticado) |
+| 12 | `zap-auth-active-scan` | OWASP ZAP | **DAST** - Active Scan autenticado (SQLi, XSS) |
+| 13 | `bruteforce-attack` | Python Script | **Brute Force** - Teste com suporte a CSRF token |
 | 14 | `upload-reports` | gsutil | Upload dos relatórios para GCS |
 | 15 | `get-service-ip` | kubectl | Exibe IP externo do DVWA |
 
@@ -173,7 +173,7 @@ gsutil ls gs://devsecops-reports-dvwa/reports-<SHORT_SHA>/
 | Checkov (Combinado) | `checkov-report.json` | JSON |
 | OWASP ZAP | `zap-report.json`, `zap-report.html` | JSON/HTML |
 | ZAP Autenticado | `zap-auth-active-report.json`, `zap-auth-active-report.html` | JSON/HTML |
-| Hydra | `hydra-bruteforce.log` | LOG |
+| Brute Force | `hydra-bruteforce.json` | JSON |
 
 3. Pontos de análise qualitativa:
 
@@ -227,6 +227,21 @@ python analise.py
 * O **IP externo** do DVWA é obtido dinamicamente e propagado via arquivo `/workspace/external_ip.txt`, não por substituição.
 
 
+### Nota sobre Brute Force
+
+O projeto utiliza um **script Python customizado** (`dvwa-bruteforce.py`) ao invés do Hydra tradicional. Isso é necessário porque:
+
+1. O DVWA implementa proteção **CSRF** no formulário de login
+2. Cada requisição requer um token `user_token` gerado dinamicamente
+3. Ferramentas como Hydra não conseguem lidar nativamente com tokens CSRF
+
+O script customizado:
+- Obtém o token CSRF de cada página antes de cada tentativa
+- Testa combinações de usuários/senhas comuns
+- Detecta CWE-307 (Brute Force) e CWE-798 (Default Credentials)
+- Gera relatório JSON estruturado para análise automatizada
+
+
 ## Estrutura do Projeto
 
 ```
@@ -239,6 +254,7 @@ python analise.py
 │   │       ├── dvwa/
 │   │       │   ├── cloudbuild.yaml  # Pipeline CI/CD principal
 │   │       │   └── k8s/             # Manifests Kubernetes (DVWA, MySQL)
+│   │       ├── dvwa-bruteforce.py   # Script de brute force com CSRF
 │   │       └── infra/               # Terraform (GKE, VPC, IAM, etc.)
 │   └── Reports/
 │       ├── analise.py               # Script de análise de cobertura
@@ -258,7 +274,7 @@ python analise.py
 | **Container Scan** | Trivy | Análise de vulnerabilidades em imagens Docker |
 | **IaC Scan** | Checkov | Análise de infraestrutura como código (Terraform, K8s) |
 | **DAST** | OWASP ZAP | Testes dinâmicos de segurança (full scan e autenticado) |
-| **Brute Force** | Hydra | Testes de força bruta em formulários de login |
+| **Brute Force** | Python (Custom) | Testes de força bruta com suporte a CSRF token |
 | **Infra** | Terraform | Provisionamento de infraestrutura no GCP |
 | **CI/CD** | Cloud Build | Pipeline de integração e entrega contínua |
 | **Container** | GKE | Orquestração de containers Kubernetes |
