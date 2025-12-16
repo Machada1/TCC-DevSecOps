@@ -261,28 +261,52 @@ steps:
       - 'get-external-ip'
 
   # 12 Teste de Brute Force com Hydra
-  - name: 'frapsoft/hydra'
+  - name: 'gcr.io/cloud-builders/docker'
     id: 'hydra-bruteforce'
-    entrypoint: bash
+    entrypoint: 'bash'
     args:
-      - -c
+      - '-c'
       - |
         EXTERNAL_IP=$$(cat /workspace/external_ip.txt)
         if [ "$$EXTERNAL_IP" = "UNAVAILABLE" ]; then
           echo "ERRO: IP externo não disponível, pulando brute force"
+          echo '{"error": "IP não disponível"}' > /workspace/reports/hydra-bruteforce.json
           exit 0
         fi
-        # Cria um pequeno wordlist temporário (ou monte um maior do repo/secret)
-        cat > /workspace/wordlist.txt <<'EOF'
+        # Cria wordlist temporário
+        cat > /workspace/wordlist.txt <<EOF
         password
         admin
         123456
         1234
+        root
+        test
         EOF
-        # Exemplo de http-post-form (ajuste path, params e resposta de erro conforme seu formulário)
-        hydra -L /workspace/wordlist.txt -P /workspace/wordlist.txt $$EXTERNAL_IP http-post-form "/login.php:username=^USER^&password=^PASS^&Login=Login failed" -f -w 10
-        # Copie resultados para reports
-        cp hydra.log /workspace/reports/hydra-bruteforce.log || true
+        # Remove linhas em branco e espaços extras
+        sed -i 's/^[[:space:]]*//;s/[[:space:]]*$$//' /workspace/wordlist.txt
+        sed -i '/^$$/d' /workspace/wordlist.txt
+        
+        echo "Iniciando Hydra brute force em $$EXTERNAL_IP..."
+        # Executa Hydra via Docker
+        docker run --rm \
+          -v /workspace:/workspace \
+          vanhauser/thc-hydra \
+          -L /workspace/wordlist.txt \
+          -P /workspace/wordlist.txt \
+          -o /workspace/reports/hydra-bruteforce.txt \
+          $$EXTERNAL_IP \
+          http-post-form "/login.php:username=^USER^&password=^PASS^&Login=Login:Login failed" \
+          -f -w 10 -t 4 || true
+        
+        # Converte para JSON básico
+        if [ -f /workspace/reports/hydra-bruteforce.txt ]; then
+          echo '{"results": "' > /workspace/reports/hydra-bruteforce.json
+          cat /workspace/reports/hydra-bruteforce.txt | tr '\n' ' ' >> /workspace/reports/hydra-bruteforce.json
+          echo '"}' >> /workspace/reports/hydra-bruteforce.json
+        else
+          echo '{"results": "Nenhuma credencial encontrada ou erro na execução"}' > /workspace/reports/hydra-bruteforce.json
+        fi
+        echo "Hydra brute force concluído"
     waitFor:
       - 'get-external-ip'
 
