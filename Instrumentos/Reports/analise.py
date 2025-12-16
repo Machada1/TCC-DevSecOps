@@ -272,23 +272,36 @@ def analyze_zap():
         'target': ''
     }
     
-    # Formato do ZAP pode variar
-    site = data.get('site', [])
-    if isinstance(site, list) and len(site) > 0:
-        site = site[0]
-    elif isinstance(site, list):
-        site = {}
+    # Formato do ZAP pode variar e pode ter múltiplos sites
+    sites = data.get('site', [])
+    if not isinstance(sites, list):
+        sites = [sites] if sites else []
     
-    analysis['target'] = site.get('@name', 'N/A') if isinstance(site, dict) else 'N/A'
+    # Coletar alertas de TODOS os sites
+    all_alerts = []
+    for site in sites:
+        if not isinstance(site, dict):
+            continue
+        # Guardar o primeiro target encontrado
+        if not analysis['target']:
+            analysis['target'] = site.get('@name', 'N/A')
+        
+        site_alerts = site.get('alerts', [])
+        if isinstance(site_alerts, dict):
+            site_alerts = site_alerts.get('alertitem', [])
+        if not isinstance(site_alerts, list):
+            site_alerts = [site_alerts] if site_alerts else []
+        all_alerts.extend(site_alerts)
     
-    alerts = site.get('alerts', []) if isinstance(site, dict) else data.get('alerts', [])
-    if isinstance(alerts, dict):
-        alerts = alerts.get('alertitem', [])
+    # Se não encontrou em site, tentar na raiz
+    if not all_alerts:
+        all_alerts = data.get('alerts', [])
+        if isinstance(all_alerts, dict):
+            all_alerts = all_alerts.get('alertitem', [])
+        if not isinstance(all_alerts, list):
+            all_alerts = [all_alerts] if all_alerts else []
     
-    if not isinstance(alerts, list):
-        alerts = [alerts] if alerts else []
-    
-    for alert in alerts:
+    for alert in all_alerts:
         if not alert:
             continue
         a = {
@@ -299,7 +312,7 @@ def analyze_zap():
             'solution': alert.get('solution', ''),
             'cwe': alert.get('cweid', ''),
             'wasc': alert.get('wascid', ''),
-            'count': int(alert.get('count', 1))
+            'count': len(alert.get('instances', [])) if alert.get('instances') else int(alert.get('count', 1))
         }
         
         analysis['alerts'].append(a)
@@ -311,6 +324,94 @@ def analyze_zap():
         if a['cwe']:
             analysis['by_cwe'][f"CWE-{a['cwe']}"] += 1
     
+    return analysis
+
+
+def analyze_zap_active():
+    """Analisa relatório do OWASP ZAP Active Scan (autenticado)"""
+    data = load_json('zap-auth-active-report.json')
+    if not data:
+        return None
+    
+    # Verificar se é erro
+    if 'error' in data:
+        return {'error': data['error']}
+    
+    analysis = {
+        'tool': 'OWASP ZAP',
+        'type': 'DAST Active Scan (Authenticated)',
+        'alerts': [],
+        'by_risk': defaultdict(int),
+        'by_cwe': defaultdict(int),
+        'target': ''
+    }
+    
+    # O formato da API REST é diferente: {"alerts": [...]}
+    alerts = data.get('alerts', [])
+    if not isinstance(alerts, list):
+        alerts = [alerts] if alerts else []
+    
+    # Agrupar alertas únicos por nome
+    unique_alerts = {}
+    for alert in alerts:
+        if not alert:
+            continue
+        name = alert.get('name', alert.get('alert', 'N/A'))
+        if name not in unique_alerts:
+            unique_alerts[name] = {
+                'name': name,
+                'risk': alert.get('risk', 'Informational'),
+                'confidence': alert.get('confidence', 'N/A'),
+                'description': alert.get('description', '')[:200] if alert.get('description') else '',
+                'solution': alert.get('solution', ''),
+                'cwe': alert.get('cweid', ''),
+                'wasc': alert.get('wascid', ''),
+                'count': 1,
+                'urls': [alert.get('url', '')]
+            }
+            if not analysis['target'] and alert.get('url'):
+                # Extrair host da URL
+                url = alert.get('url', '')
+                if url:
+                    parts = url.split('/')
+                    if len(parts) >= 3:
+                        analysis['target'] = '/'.join(parts[:3])
+        else:
+            unique_alerts[name]['count'] += 1
+            if alert.get('url'):
+                unique_alerts[name]['urls'].append(alert.get('url', ''))
+    
+    for alert in unique_alerts.values():
+        analysis['alerts'].append(alert)
+        
+        # Mapear risk level
+        risk_map = {'High': 'High', 'Medium': 'Medium', 'Low': 'Low', 'Informational': 'Informational'}
+        risk_level = risk_map.get(alert['risk'], 'Informational')
+        analysis['by_risk'][risk_level] += 1
+        
+        if alert['cwe']:
+            analysis['by_cwe'][f"CWE-{alert['cwe']}"] += 1
+    
+    return analysis
+
+
+def analyze_hydra_bruteforce():
+    """Analisa relatório do Hydra Brute Force"""
+    data = load_json('hydra-bruteforce.json')
+    if not data:
+        return None
+    # O formato esperado é {'results': ...}
+    result = data.get('results', '')
+    analysis = {
+        'tool': 'Hydra',
+        'type': 'Brute Force',
+        'result': result
+    }
+    # Se encontrar credenciais, marca como vulnerável
+    if result and 'Nenhuma credencial encontrada' not in result and 'erro' not in result.lower():
+        analysis['vulnerable'] = True
+    else:
+        analysis['vulnerable'] = False
     return analysis
 
 
@@ -373,7 +474,7 @@ def _process_checkov_results(data, analysis, check_type):
         analysis['by_check_type'][check_type] += 1
 
 
-def compare_with_known_vulnerabilities(trivy_analysis, semgrep_analysis, zap_analysis):
+def compare_with_known_vulnerabilities(trivy_analysis, semgrep_analysis, zap_analysis, hydra_analysis=None, zap_active_analysis=None):
     """Compara vulnerabilidades encontradas com as conhecidas do DVWA"""
     
     coverage = {
@@ -419,11 +520,17 @@ def compare_with_known_vulnerabilities(trivy_analysis, semgrep_analysis, zap_ana
                     detected_cwes.add(norm_cwe)
                     cwe_to_tool[norm_cwe] = 'Semgrep'
 
-    # ZAP
+    # ZAP Baseline
     if zap_analysis and 'by_cwe' in zap_analysis:
         for cwe in zap_analysis['by_cwe'].keys():
             detected_cwes.add(cwe)
-            cwe_to_tool[cwe] = 'OWASP ZAP'
+            cwe_to_tool[cwe] = 'OWASP ZAP (Baseline)'
+
+    # ZAP Active Scan (autenticado) - Este pode detectar SQLi, XSS, etc.
+    if zap_active_analysis and 'by_cwe' in zap_active_analysis:
+        for cwe in zap_active_analysis['by_cwe'].keys():
+            detected_cwes.add(cwe)
+            cwe_to_tool[cwe] = 'OWASP ZAP (Active Scan)'
 
     # Checkov
     checkov = None
@@ -446,6 +553,25 @@ def compare_with_known_vulnerabilities(trivy_analysis, semgrep_analysis, zap_ana
             if cwe.startswith('CWE-'):
                 detected_cwes.add(cwe)
                 cwe_to_tool[cwe] = 'Checkov'
+    
+    # Hydra - Brute Force
+    # Se o Hydra foi executado (mesmo sem encontrar vuln), considerar CWE-307 (Brute Force) como testado
+    hydra_tested = False
+    hydra_vulnerable = False
+    if hydra_analysis:
+        hydra_tested = True
+        hydra_vulnerable = hydra_analysis.get('vulnerable', False)
+        if hydra_vulnerable:
+            # Se Hydra encontrou credenciais fracas, detectou CWE-307 e CWE-798
+            detected_cwes.add('CWE-307')  # Brute Force
+            detected_cwes.add('CWE-798')  # Default Credentials
+            cwe_to_tool['CWE-307'] = 'Hydra'
+            cwe_to_tool['CWE-798'] = 'Hydra'
+    
+    # Trivy EOSL - Se detectou sistema operacional em End of Support Life
+    if trivy_analysis and trivy_analysis.get('eosl', False):
+        detected_cwes.add('CWE-1104')  # Outdated OS/Packages
+        cwe_to_tool['CWE-1104'] = 'Trivy (Container - EOSL)'
     
     # Verificar cobertura das vulnerabilidades conhecidas
     for category, vulns in DVWA_KNOWN_VULNERABILITIES.items():
@@ -473,30 +599,49 @@ def compare_with_known_vulnerabilities(trivy_analysis, semgrep_analysis, zap_ana
         category = vuln.get('category', '')
         # Infraestrutura
         if category == 'infrastructure':
-            if name in ['Outdated OS', 'Outdated Packages']:
-                return ("Detectada por Trivy", "-", "Trivy")
+            if name == 'Outdated OS':
+                return ("Só detectável se o scanner identificar o SO base como EOL.", "Verifique se o Trivy está analisando o SO base corretamente.", "Trivy")
+            if name == 'Outdated Packages':
+                return ("Só detectável se o scanner identificar pacotes desatualizados.", "Verifique se o Trivy está analisando todos os pacotes.", "Trivy")
             if name == 'Default Credentials':
-                return ("Requer brute force/login automatizado", "Adicionar brute force (ex: hydra) na pipeline", "-")
-            return ("Não detectável por SAST/SCA/IaC", "-", "-")
+                return ("Requer brute force/login automatizado.", "Adicionar brute force (ex: hydra) na pipeline.", "-")
+            if name == 'Exposed MySQL':
+                return ("Só detectável se o scanner identificar exposição de serviço e credenciais fracas.", "Verifique se há testes de exposição de porta e credenciais.", "Trivy")
+            return ("Não detectável por SAST/SCA/IaC.", "-", "-")
         # Web application
-        if name in ['File Inclusion (LFI/RFI)', 'File Upload', 'Brute Force', 'Authorisation Bypass', 'CSRF', 'Weak Session IDs']:
-            return ("Requer autenticação e/ou ataque ativo", "Adicionar ZAP autenticado/active scan na pipeline", "-")
-        if name in ['SQL Injection', 'Cross-Site Scripting (XSS)', 'Command Injection']:
-            return ("Requer ataque ativo", "Adicionar active scan no ZAP", "-")
+        if name == 'File Inclusion (LFI/RFI)':
+            return ("Requer autenticação e/ou ataque ativo.", "Adicionar ZAP autenticado/active scan na pipeline.", "-")
+        if name == 'File Upload':
+            return ("Requer autenticação e/ou ataque ativo.", "Adicionar ZAP autenticado/active scan na pipeline.", "-")
+        if name == 'Brute Force':
+            return ("Requer brute force/login automatizado.", "Adicionar brute force (ex: hydra) na pipeline.", "-")
         if name == 'Insecure CAPTCHA':
-            return ("Requer interação humana ou automação avançada", "Fora do escopo do pipeline automatizado", "-")
+            return ("Requer interação humana ou automação avançada.", "Fora do escopo do pipeline automatizado.", "-")
+        if name == 'Authorisation Bypass':
+            return ("Requer autenticação e/ou ataque ativo.", "Adicionar ZAP autenticado/active scan na pipeline.", "-")
+        if name == 'CSRF':
+            return ("Só detectável se o scanner simular ações autenticadas.", "Adicionar ZAP autenticado/active scan na pipeline.", "-")
+        if name == 'Weak Session IDs':
+            return ("Só detectável se o scanner analisar tokens de sessão.", "Adicionar análise de sessão no DAST.", "-")
+        if name == 'SQL Injection':
+            return ("Só detectável se o scanner executar payloads ativos.", "Adicionar active scan no ZAP.", "-")
+        if name == 'Cross-Site Scripting (XSS)':
+            return ("Só detectável se o scanner executar payloads ativos.", "Adicionar active scan no ZAP.", "-")
+        if name == 'Command Injection':
+            return ("Só detectável se o scanner executar payloads ativos.", "Adicionar active scan no ZAP.", "-")
         if name == 'JavaScript Attacks':
-            return ("Requer SAST para JS/PHP", "Adicionar SAST específico para PHP/JS", "-")
+            return ("Requer SAST para JS/PHP.", "Adicionar SAST específico para PHP/JS.", "-")
         if name == 'Content Security Policy Bypass':
-            return ("Pode ser detectado por DAST, mas depende da regra e contexto", "Verificar configuração do ZAP para CSP", "-")
-        return ("Cobertura limitada pelo tipo de teste atual", "Analisar possibilidade de ajuste na pipeline", "-")
+            return ("Pode ser detectado por DAST, mas depende da regra e contexto.", "Verificar configuração do ZAP para CSP.", "-")
+        if name == 'Open HTTP Redirect':
+            return ("Só detectável se o scanner seguir e analisar redirects.", "Verificar se o DAST cobre redirects.", "-")
+        return ("Cobertura limitada pelo tipo de teste atual.", "Analisar possibilidade de ajuste na pipeline.", "-")
 
     # Atualiza todos os itens com motivo/sugestao/ferramenta
     for entry in coverage['detected']:
-        motivo, sugestao, ferramenta = motivo_sugestao(entry)
-        entry['motivo'] = motivo
-        entry['sugestao'] = sugestao
-        entry['ferramenta'] = ferramenta if ferramenta != '-' else entry.get('ferramenta', '-')
+        entry['motivo'] = "Detectada pelo pipeline."
+        entry['sugestao'] = "-"
+        # ferramenta já preenchida
     for entry in coverage['not_detected']:
         motivo, sugestao, ferramenta = motivo_sugestao(entry)
         entry['motivo'] = motivo
@@ -563,7 +708,13 @@ def generate_report():
     semgrep = analyze_semgrep()
     trivy_sca = analyze_trivy_sca()
     zap = analyze_zap()
+    zap_active = analyze_zap_active()  # ZAP Active Scan (autenticado)
     checkov = analyze_checkov()
+    hydra = analyze_hydra_bruteforce()
+
+    # Ajuste: só considerar como detectada vulnerabilidade do DVWA se o CWE foi encontrado em contexto relevante
+    # Exemplo: CWE-89 só conta se foi detectado em findings do app, não só no container base
+    # (Para simplificação, mantemos a lógica de CWE, mas pode ser refinada para contexto de findings)
     
     # ========================================================================
     # SUMÁRIO EXECUTIVO
@@ -577,18 +728,28 @@ def generate_report():
         total_vulns += len(semgrep['findings'])
     if zap and 'alerts' in zap:
         total_vulns += len(zap['alerts'])
+    if zap_active and 'alerts' in zap_active:
+        total_vulns += len(zap_active['alerts'])
     if checkov:
         total_vulns += len(checkov['findings'])
+    if hydra and hydra.get('vulnerable'):
+        total_vulns += 1
     
     # Tabela resumo
+    hydra_status = "✅ Executado" if hydra else "⚠️ Não disponível"
+    hydra_result = "Vulnerável" if hydra and hydra.get('vulnerable') else ("Seguro" if hydra else "N/A")
+    zap_active_status = "✅ Executado" if zap_active and 'alerts' in zap_active else "⚠️ Não disponível"
+    zap_active_findings = len(zap_active['alerts']) if zap_active and 'alerts' in zap_active else 0
     report.add_table(
         ["Ferramenta", "Tipo", "Findings", "Status"],
         [
             ["Trivy", "Container Scan", len(trivy_container['vulnerabilities']) if trivy_container else 0, "✅ Executado"],
             ["Semgrep", "SAST", len(semgrep['findings']) if semgrep else 0, "✅ Executado"],
             ["Trivy FS", "SCA", len(trivy_sca['vulnerabilities']) if trivy_sca else 0, "✅ Executado"],
-            ["OWASP ZAP", "DAST", len(zap['alerts']) if zap and 'alerts' in zap else 0, "✅ Executado" if zap and 'alerts' in zap else "⚠️ Não gerado"],
-            ["Checkov", "IaC Scan", len(checkov['findings']) if checkov else 0, "✅ Executado" if checkov else "⚠️ Não disponível"]
+            ["OWASP ZAP", "DAST (Baseline)", len(zap['alerts']) if zap and 'alerts' in zap else 0, "✅ Executado" if zap and 'alerts' in zap else "⚠️ Não gerado"],
+            ["OWASP ZAP", "DAST (Active Scan)", zap_active_findings, zap_active_status],
+            ["Checkov", "IaC Scan", len(checkov['findings']) if checkov else 0, "✅ Executado" if checkov else "⚠️ Não disponível"],
+            ["Hydra", "Brute Force", hydra_result, hydra_status]
         ]
     )
     
@@ -761,6 +922,56 @@ def generate_report():
         report.add()
     
     # ========================================================================
+    # SEÇÃO 4.1: DAST - OWASP ZAP ACTIVE SCAN (AUTENTICADO)
+    # ========================================================================
+    report.add_header("4.1 🔓 DAST Active Scan (Autenticado) - OWASP ZAP", 2)
+    
+    if zap_active and 'alerts' in zap_active:
+        report.add(f"**Alvo:** `{zap_active['target']}`")
+        report.add()
+        report.add(f"**Total de alertas:** {len(zap_active['alerts'])}")
+        report.add()
+        report.add("**Tipo de scan:** Active Scan com autenticação (detecta SQL Injection, XSS, etc.)")
+        report.add()
+        
+        if zap_active['by_risk']:
+            report.add_header("Distribuição por Risco", 3)
+            risk_order = ['High', 'Medium', 'Low', 'Informational']
+            sorted_risks = sorted(zap_active['by_risk'].items(), key=lambda x: risk_order.index(x[0]) if x[0] in risk_order else 99)
+            report.add_table(
+                ["Nível de Risco", "Quantidade"],
+                [[risk, count] for risk, count in sorted_risks]
+            )
+        
+        report.add_header("Alertas Encontrados (Active Scan)", 3)
+        for alert in zap_active['alerts']:
+            risk_icon = {'High': '🔴', 'Medium': '🟠', 'Low': '🟡'}.get(alert['risk'], '🔵')
+            report.add(f"**{risk_icon} {alert['name']}** (x{alert['count']})")
+            report.add(f"- Risco: {alert['risk']}")
+            report.add(f"- CWE: CWE-{alert['cwe']}" if alert['cwe'] else "- CWE: N/A")
+            if alert['description']:
+                desc = alert['description'].replace('<p>', '').replace('</p>', ' ').replace('<br>', ' ')
+                report.add(f"- Descrição: {desc[:100]}...")
+            report.add()
+        
+        if zap_active['by_cwe']:
+            report.add_header("CWEs Detectados pelo Active Scan", 3)
+            for cwe, count in zap_active['by_cwe'].items():
+                report.add(f"- **{cwe}**: {count} ocorrência(s)")
+            report.add()
+    elif zap_active and 'error' in zap_active:
+        report.add(f"⚠️ **Erro na execução do ZAP Active Scan:** {zap_active['error']}")
+        report.add()
+    else:
+        report.add("⚠️ Relatório do OWASP ZAP Active Scan não disponível.")
+        report.add()
+        report.add("**Possíveis causas:**")
+        report.add("1. O scan autenticado não foi executado")
+        report.add("2. Erro na autenticação com DVWA")
+        report.add("3. O relatório zap-auth-active-report.json não foi gerado")
+        report.add()
+    
+    # ========================================================================
     # SEÇÃO 5: IAC SCAN - CHECKOV
     # ========================================================================
     report.add_header("5. 🏗️ IaC Scan - Checkov", 2)
@@ -787,11 +998,38 @@ def generate_report():
         report.add()
     
     # ========================================================================
-    # SEÇÃO 6: COMPARAÇÃO COM VULNERABILIDADES CONHECIDAS DO DVWA
+    # SEÇÃO 6: BRUTE FORCE - HYDRA
     # ========================================================================
-    report.add_header("6. 🎯 Comparação com Vulnerabilidades Conhecidas do DVWA", 2)
+    report.add_header("6. 🔐 Teste de Força Bruta - Hydra", 2)
     
-    coverage = compare_with_known_vulnerabilities(trivy_container, semgrep, zap)
+    if hydra:
+        report.add(f"**Ferramenta:** {hydra['tool']}")
+        report.add()
+        report.add(f"**Tipo de teste:** {hydra['type']}")
+        report.add()
+        if hydra.get('vulnerable'):
+            report.add("### ⚠️ Vulnerabilidade Detectada!")
+            report.add()
+            report.add(f"**Resultado:** {hydra.get('result')}")
+            report.add()
+            report.add("A aplicação é vulnerável a ataques de força bruta. Credenciais fracas foram encontradas.")
+        else:
+            report.add("### ✅ Nenhuma Vulnerabilidade de Força Bruta Detectada")
+            report.add()
+            report.add(f"**Resultado:** {hydra.get('result')}")
+            report.add()
+            report.add("O teste de força bruta não encontrou credenciais fracas ou o teste não conseguiu ser executado com sucesso.")
+        report.add()
+    else:
+        report.add("⚠️ Relatório do Hydra não disponível.")
+        report.add()
+    
+    # ========================================================================
+    # SEÇÃO 7: COMPARAÇÃO COM VULNERABILIDADES CONHECIDAS DO DVWA
+    # ========================================================================
+    report.add_header("7. 🎯 Comparação com Vulnerabilidades Conhecidas do DVWA", 2)
+    
+    coverage = compare_with_known_vulnerabilities(trivy_container, semgrep, zap, hydra, zap_active)
 
     total_known = len(coverage['detected']) + len(coverage['not_detected'])
     coverage_pct = (len(coverage['detected']) / total_known * 100) if total_known > 0 else 0
@@ -850,9 +1088,9 @@ def generate_report():
         report.add()
     
     # ========================================================================
-    # SEÇÃO 7: CONCLUSÕES E RECOMENDAÇÕES
+    # SEÇÃO 8: CONCLUSÕES E RECOMENDAÇÕES
     # ========================================================================
-    report.add_header("7. 📝 Conclusões e Recomendações para o TCC", 2)
+    report.add_header("8. 📝 Conclusões e Recomendações para o TCC", 2)
     
     report.add_header("Principais Descobertas", 3)
     report.add("""

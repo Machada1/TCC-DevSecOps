@@ -227,7 +227,7 @@ steps:
     waitFor:
       - 'get-external-ip'
 
-  # 11 ZAP autenticado + active scan
+  # 11 ZAP autenticado + active scan (usando API REST diretamente)
   - name: 'ghcr.io/zaproxy/zaproxy:stable'
     id: 'zap-auth-active-scan'
     entrypoint: 'sh'
@@ -237,27 +237,119 @@ steps:
         EXTERNAL_IP=$$(cat /workspace/external_ip.txt)
         if [ "$$EXTERNAL_IP" = "UNAVAILABLE" ]; then
           echo "ERRO: IP externo não disponível, pulando ZAP autenticado"
-          echo '{"error": "IP externo não disponível"}' > /workspace/reports/zap-auth-report.json
+          echo '{"error": "IP externo não disponível"}' > /workspace/reports/zap-auth-active-report.json
           exit 0
         fi
-        TARGET_URL="http://$$EXTERNAL_IP/login.php"
-        # Instala zap-cli apenas com pip3 --user
-        pip3 install --user zapcli
+        
+        TARGET_URL="http://$$EXTERNAL_IP"
+        ZAP_API="http://localhost:8090"
+        
+        echo "=== Iniciando ZAP Active Scan Autenticado ==="
+        echo "Alvo: $$TARGET_URL"
+        
         # Inicia ZAP em modo daemon
         zap.sh -daemon -port 8090 -host 0.0.0.0 -config api.disablekey=true &
-        sleep 30
-        # Login automatizado (ajuste conforme necessário)
-        curl -c /workspace/cookie.txt -d "username=${_DVWA_USER}&password=${_DVWA_PASS}&Login=Login" "$$TARGET_URL"
-        # Importa cookie para ZAP
-        ~/.local/bin/zap-cli --zap-url http://localhost:8090 --api-key '' load-cookies /workspace/cookie.txt http://$$EXTERNAL_IP
-        # Active scan autenticado
-        ~/.local/bin/zap-cli --zap-url http://localhost:8090 --api-key '' active-scan http://$$EXTERNAL_IP
-        # Exporta relatório
-        ~/.local/bin/zap-cli --zap-url http://localhost:8090 --api-key '' report -o /workspace/reports/zap-auth-active-report.html -f html
-        ~/.local/bin/zap-cli --zap-url http://localhost:8090 --api-key '' report -o /workspace/reports/zap-auth-active-report.json -f json
-        echo "ZAP autenticado + active scan concluído"
+        ZAP_PID=$$!
+        
+        # Aguarda ZAP iniciar (verifica via API)
+        echo "Aguardando ZAP iniciar..."
+        for i in $$(seq 1 60); do
+          if curl -s "$$ZAP_API/JSON/core/view/version/" > /dev/null 2>&1; then
+            echo "ZAP iniciado com sucesso!"
+            break
+          fi
+          echo "Tentativa $$i/60..."
+          sleep 2
+        done
+        
+        # Verifica se ZAP está respondendo
+        ZAP_VERSION=$$(curl -s "$$ZAP_API/JSON/core/view/version/" | grep -o '"version":"[^"]*"' || echo "erro")
+        echo "ZAP Version: $$ZAP_VERSION"
+        
+        if [ "$$ZAP_VERSION" = "erro" ]; then
+          echo "ERRO: ZAP não iniciou corretamente"
+          echo '{"error": "ZAP não iniciou"}' > /workspace/reports/zap-auth-active-report.json
+          exit 0
+        fi
+        
+        # 1. Primeiro, faz login no DVWA para obter o cookie de sessão
+        echo "=== Realizando login no DVWA ==="
+        LOGIN_RESPONSE=$$(curl -s -c /tmp/dvwa_cookies.txt -b /tmp/dvwa_cookies.txt \
+          -d "username=${_DVWA_USER}&password=${_DVWA_PASS}&Login=Login" \
+          "$$TARGET_URL/login.php" -w "%{http_code}" -o /tmp/login_body.html)
+        echo "Login HTTP Code: $$LOGIN_RESPONSE"
+        
+        # Extrai PHPSESSID do cookie
+        PHPSESSID=$$(grep PHPSESSID /tmp/dvwa_cookies.txt | awk '{print $$7}' || echo "")
+        echo "PHPSESSID: $$PHPSESSID"
+        
+        # 2. Configura sessão HTTP no ZAP com o cookie
+        if [ -n "$$PHPSESSID" ]; then
+          echo "=== Configurando sessão no ZAP ==="
+          # Adiciona o cookie de sessão ao ZAP
+          curl -s "$$ZAP_API/JSON/httpsessions/action/addSessionToken/?site=$$EXTERNAL_IP&sessionToken=PHPSESSID"
+          curl -s "$$ZAP_API/JSON/httpsessions/action/setActiveSession/?site=$$EXTERNAL_IP&session=$$PHPSESSID" || true
+        fi
+        
+        # 3. Spider para descobrir todas as URLs (com cookie)
+        echo "=== Executando Spider ==="
+        SPIDER_ID=$$(curl -s "$$ZAP_API/JSON/spider/action/scan/?url=$$TARGET_URL&recurse=true" | grep -o '"scan":"[0-9]*"' | grep -o '[0-9]*')
+        echo "Spider ID: $$SPIDER_ID"
+        
+        if [ -n "$$SPIDER_ID" ]; then
+          # Aguarda spider completar (max 3 min)
+          for i in $$(seq 1 36); do
+            STATUS=$$(curl -s "$$ZAP_API/JSON/spider/view/status/?scanId=$$SPIDER_ID" | grep -o '"status":"[0-9]*"' | grep -o '[0-9]*')
+            echo "Spider progress: $$STATUS%"
+            if [ "$$STATUS" = "100" ]; then
+              echo "Spider concluído!"
+              break
+            fi
+            sleep 5
+          done
+        fi
+        
+        # 4. Active Scan (detecta SQL Injection, XSS, File Inclusion, etc.)
+        echo "=== Executando Active Scan ==="
+        ASCAN_ID=$$(curl -s "$$ZAP_API/JSON/ascan/action/scan/?url=$$TARGET_URL&recurse=true&inScopeOnly=false" | grep -o '"scan":"[0-9]*"' | grep -o '[0-9]*')
+        echo "Active Scan ID: $$ASCAN_ID"
+        
+        if [ -n "$$ASCAN_ID" ]; then
+          # Aguarda active scan completar (max 10 min)
+          for i in $$(seq 1 60); do
+            STATUS=$$(curl -s "$$ZAP_API/JSON/ascan/view/status/?scanId=$$ASCAN_ID" | grep -o '"status":"[0-9]*"' | grep -o '[0-9]*')
+            echo "Active Scan progress: $$STATUS%"
+            if [ "$$STATUS" = "100" ]; then
+              echo "Active Scan concluído!"
+              break
+            fi
+            sleep 10
+          done
+        fi
+        
+        # 5. Gera relatórios
+        echo "=== Gerando Relatórios ==="
+        
+        # Relatório JSON
+        curl -s "$$ZAP_API/JSON/core/view/alerts/?baseurl=$$TARGET_URL&start=0&count=1000" > /workspace/reports/zap-auth-active-report.json
+        
+        # Relatório HTML
+        curl -s "$$ZAP_API/OTHER/core/other/htmlreport/" > /workspace/reports/zap-auth-active-report.html
+        
+        # Mostra resumo dos alertas
+        echo "=== Resumo dos Alertas Encontrados ==="
+        ALERTS_COUNT=$$(curl -s "$$ZAP_API/JSON/core/view/numberOfAlerts/?baseurl=$$TARGET_URL" | grep -o '"numberOfAlerts":"[0-9]*"' | grep -o '[0-9]*')
+        echo "Total de alertas: $$ALERTS_COUNT"
+        
+        # Lista alertas por risco
+        echo "Alertas por nível de risco:"
+        curl -s "$$ZAP_API/JSON/core/view/alertsSummary/?baseurl=$$TARGET_URL"
+        
+        ls -la /workspace/reports/zap-auth-* 2>/dev/null || echo "Nenhum relatório gerado"
+        
+        echo "=== ZAP Active Scan Autenticado Concluído ==="
     waitFor:
-      - 'get-external-ip'
+      - 'zap-scan'
 
   # 12 Teste de Brute Force com Hydra
   - name: 'gcr.io/cloud-builders/docker'
@@ -295,6 +387,7 @@ steps:
         # Builda imagem customizada do Hydra (se necessário)
         docker build -f /workspace/Instrumentos/Codigos/DevSecOps/hydra.Dockerfile -t custom-hydra /workspace/Instrumentos/Codigos/DevSecOps
         # Executa Hydra via Docker customizado
+        # Nota: O formato é "URL:PARAMS:FAIL_STRING" - o FAIL_STRING é o texto que aparece quando login FALHA
         docker run --rm \
           -v /workspace:/workspace \
           custom-hydra \
@@ -302,8 +395,8 @@ steps:
           -P /workspace/wordlist.txt \
           -o /workspace/reports/hydra-bruteforce.txt \
           $$EXTERNAL_IP \
-          http-post-form "/login.php:username=^USER^&password=^PASS^&Login=Login failed" \
-          -f -w 10 -t 4 || true
+          http-post-form "/login.php:username=^USER^&password=^PASS^&Login=Login:F=Login failed" \
+          -f -w 10 -t 4 -V || true
         
         # Converte para JSON básico
         if [ -f /workspace/reports/hydra-bruteforce.txt ]; then
@@ -337,10 +430,12 @@ steps:
         fi
     waitFor:
       - 'zap-scan'
+      - 'zap-auth-active-scan'
       - 'semgrep'
       - 'sca-scan'
       - 'checkov'
       - 'trivy'
+      - 'hydra-bruteforce'
 
   # 14 Exibir IP externo do DVWA
   - name: 'gcr.io/cloud-builders/kubectl'
