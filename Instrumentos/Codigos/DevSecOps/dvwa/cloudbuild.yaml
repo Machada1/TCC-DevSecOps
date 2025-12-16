@@ -246,94 +246,84 @@ steps:
         echo "=== Iniciando ZAP Active Scan Autenticado ==="
         echo "Alvo: $$TARGET_URL"
         
-        # Cria script que será executado dentro do container ZAP
-        cat > /workspace/zap-active-scan.sh << 'ZAPSCRIPT'
-        #!/bin/bash
-        set -e
-        
-        TARGET_URL="$1"
-        EXTERNAL_IP="$2"
-        DVWA_USER="$3"
-        DVWA_PASS="$4"
-        ZAP_API="http://localhost:8090"
-        
-        echo "=== Iniciando ZAP daemon ==="
-        zap.sh -daemon -port 8090 -host 0.0.0.0 -config api.disablekey=true &
-        
-        # Aguarda ZAP iniciar
-        echo "Aguardando ZAP iniciar..."
-        for i in $(seq 1 60); do
-          if curl -s "$ZAP_API/JSON/core/view/version/" > /dev/null 2>&1; then
-            echo "ZAP iniciado!"
-            break
-          fi
-          sleep 2
-        done
-        
-        # Verifica ZAP
-        ZAP_VERSION=$(curl -s "$ZAP_API/JSON/core/view/version/" 2>/dev/null || echo "erro")
-        echo "ZAP: $ZAP_VERSION"
-        
-        if echo "$ZAP_VERSION" | grep -q "erro"; then
-          echo '{"error": "ZAP não iniciou"}' > /zap/wrk/zap-auth-active-report.json
-          exit 0
-        fi
-        
-        # Login no DVWA
-        echo "=== Login no DVWA ==="
-        curl -s -c /tmp/cookies.txt -b /tmp/cookies.txt \
-          -d "username=${DVWA_USER}&password=${DVWA_PASS}&Login=Login" \
-          "$TARGET_URL/login.php" -o /dev/null
-        
-        # Spider
-        echo "=== Executando Spider ==="
-        SPIDER_ID=$(curl -s "$ZAP_API/JSON/spider/action/scan/?url=$TARGET_URL&recurse=true" | grep -oP '"scan":"\K[0-9]+')
-        if [ -n "$SPIDER_ID" ]; then
-          for i in $(seq 1 36); do
-            STATUS=$(curl -s "$ZAP_API/JSON/spider/view/status/?scanId=$SPIDER_ID" | grep -oP '"status":"\K[0-9]+' || echo "0")
-            echo "Spider: $STATUS%"
-            [ "$STATUS" = "100" ] && break
-            sleep 5
-          done
-        fi
-        
-        # Active Scan
-        echo "=== Executando Active Scan ==="
-        ASCAN_ID=$(curl -s "$ZAP_API/JSON/ascan/action/scan/?url=$TARGET_URL&recurse=true&inScopeOnly=false" | grep -oP '"scan":"\K[0-9]+')
-        if [ -n "$ASCAN_ID" ]; then
-          for i in $(seq 1 60); do
-            STATUS=$(curl -s "$ZAP_API/JSON/ascan/view/status/?scanId=$ASCAN_ID" | grep -oP '"status":"\K[0-9]+' || echo "0")
-            echo "Active Scan: $STATUS%"
-            [ "$STATUS" = "100" ] && break
-            sleep 10
-          done
-        fi
-        
-        # Gera relatórios
-        echo "=== Gerando Relatórios ==="
-        curl -s "$ZAP_API/JSON/core/view/alerts/?baseurl=$TARGET_URL&start=0&count=1000" > /zap/wrk/zap-auth-active-report.json
-        curl -s "$ZAP_API/OTHER/core/other/htmlreport/" > /zap/wrk/zap-auth-active-report.html
-        
-        # Resumo
-        echo "=== Resumo ==="
-        ALERTS=$(curl -s "$ZAP_API/JSON/core/view/numberOfAlerts/?baseurl=$TARGET_URL" | grep -oP '"numberOfAlerts":"\K[0-9]+' || echo "0")
-        echo "Total de alertas: $ALERTS"
-        curl -s "$ZAP_API/JSON/core/view/alertsSummary/?baseurl=$TARGET_URL"
-        
-        ls -la /zap/wrk/zap-auth-*
-        echo "=== Concluído ==="
-        ZAPSCRIPT
-        
-        chmod +x /workspace/zap-active-scan.sh
-        
-        # Executa ZAP via docker com usuário root (-u 0) e volume montado
+        # Executa ZAP via docker com usuário root (-u 0)
+        # O script é passado inline usando bash -c
         docker run --rm \
           -u 0 \
           -v /workspace/reports:/zap/wrk:rw \
-          -v /workspace/zap-active-scan.sh:/zap/zap-active-scan.sh:ro \
-          --network host \
+          -e TARGET_URL="$$TARGET_URL" \
+          -e EXTERNAL_IP="$$EXTERNAL_IP" \
+          -e DVWA_USER="${_DVWA_USER}" \
+          -e DVWA_PASS="${_DVWA_PASS}" \
           ghcr.io/zaproxy/zaproxy:stable \
-          bash /zap/zap-active-scan.sh "$$TARGET_URL" "$$EXTERNAL_IP" "${_DVWA_USER}" "${_DVWA_PASS}"
+          bash -c '
+            ZAP_API="http://localhost:8090"
+            
+            echo "=== Iniciando ZAP daemon ==="
+            zap.sh -daemon -port 8090 -host 0.0.0.0 -config api.disablekey=true &
+            
+            echo "Aguardando ZAP iniciar..."
+            for i in $(seq 1 60); do
+              if curl -s "$ZAP_API/JSON/core/view/version/" > /dev/null 2>&1; then
+                echo "ZAP iniciado!"
+                break
+              fi
+              sleep 2
+            done
+            
+            ZAP_VERSION=$(curl -s "$ZAP_API/JSON/core/view/version/" 2>/dev/null || echo "erro")
+            echo "ZAP: $ZAP_VERSION"
+            
+            if echo "$ZAP_VERSION" | grep -q "erro"; then
+              echo "{\"error\": \"ZAP nao iniciou\"}" > /zap/wrk/zap-auth-active-report.json
+              exit 0
+            fi
+            
+            echo "=== Login no DVWA ==="
+            curl -s -c /tmp/cookies.txt -b /tmp/cookies.txt \
+              -d "username=$DVWA_USER&password=$DVWA_PASS&Login=Login" \
+              "$TARGET_URL/login.php" -o /dev/null
+            
+            echo "=== Executando Spider ==="
+            SPIDER_RESP=$(curl -s "$ZAP_API/JSON/spider/action/scan/?url=$TARGET_URL&recurse=true")
+            SPIDER_ID=$(echo "$SPIDER_RESP" | grep -oP "\"scan\":\"\\K[0-9]+" || echo "")
+            echo "Spider ID: $SPIDER_ID"
+            
+            if [ -n "$SPIDER_ID" ]; then
+              for i in $(seq 1 36); do
+                STATUS=$(curl -s "$ZAP_API/JSON/spider/view/status/?scanId=$SPIDER_ID" | grep -oP "\"status\":\"\\K[0-9]+" || echo "0")
+                echo "Spider: $STATUS%"
+                [ "$STATUS" = "100" ] && break
+                sleep 5
+              done
+            fi
+            
+            echo "=== Executando Active Scan ==="
+            ASCAN_RESP=$(curl -s "$ZAP_API/JSON/ascan/action/scan/?url=$TARGET_URL&recurse=true&inScopeOnly=false")
+            ASCAN_ID=$(echo "$ASCAN_RESP" | grep -oP "\"scan\":\"\\K[0-9]+" || echo "")
+            echo "Active Scan ID: $ASCAN_ID"
+            
+            if [ -n "$ASCAN_ID" ]; then
+              for i in $(seq 1 60); do
+                STATUS=$(curl -s "$ZAP_API/JSON/ascan/view/status/?scanId=$ASCAN_ID" | grep -oP "\"status\":\"\\K[0-9]+" || echo "0")
+                echo "Active Scan: $STATUS%"
+                [ "$STATUS" = "100" ] && break
+                sleep 10
+              done
+            fi
+            
+            echo "=== Gerando Relatórios ==="
+            curl -s "$ZAP_API/JSON/core/view/alerts/?baseurl=$TARGET_URL&start=0&count=1000" > /zap/wrk/zap-auth-active-report.json
+            curl -s "$ZAP_API/OTHER/core/other/htmlreport/" > /zap/wrk/zap-auth-active-report.html
+            
+            echo "=== Resumo ==="
+            ALERTS=$(curl -s "$ZAP_API/JSON/core/view/numberOfAlerts/?baseurl=$TARGET_URL" | grep -oP "\"numberOfAlerts\":\"\\K[0-9]+" || echo "0")
+            echo "Total de alertas: $ALERTS"
+            curl -s "$ZAP_API/JSON/core/view/alertsSummary/?baseurl=$TARGET_URL"
+            
+            ls -la /zap/wrk/zap-auth-*
+            echo "=== Concluído ==="
+          '
         
         echo "=== Verificando relatórios gerados ==="
         ls -la /workspace/reports/zap-auth-* 2>/dev/null || echo "Nenhum relatório encontrado"
