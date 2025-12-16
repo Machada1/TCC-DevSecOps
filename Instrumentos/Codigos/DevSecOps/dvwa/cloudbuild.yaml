@@ -292,11 +292,13 @@ steps:
         sed -i '/^$$/d' /workspace/wordlist.txt
         
         echo "Iniciando Hydra brute force em $$EXTERNAL_IP..."
-        # Executa Hydra via Docker (imagem sublimesec/hydra)
+        # Builda imagem customizada do Hydra (se necessário)
+        docker build -f /workspace/Instrumentos/Codigos/DevSecOps/hydra.Dockerfile -t custom-hydra /workspace/Instrumentos/Codigos/DevSecOps
+        # Executa Hydra via Docker customizado
         docker run --rm \
           -v /workspace:/workspace \
-          sublimesec/hydra \
-          hydra -L /workspace/wordlist.txt \
+          custom-hydra \
+          -L /workspace/wordlist.txt \
           -P /workspace/wordlist.txt \
           -o /workspace/reports/hydra-bruteforce.txt \
           $$EXTERNAL_IP \
