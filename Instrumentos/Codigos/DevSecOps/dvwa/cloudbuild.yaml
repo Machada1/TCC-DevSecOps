@@ -330,11 +330,26 @@ steps:
         # 5. Gera relatórios
         echo "=== Gerando Relatórios ==="
         
+        # Ajusta permissões do diretório de reports (ZAP roda como user zap)
+        chmod 777 /workspace/reports 2>/dev/null || true
+        
         # Relatório JSON
-        curl -s "$$ZAP_API/JSON/core/view/alerts/?baseurl=$$TARGET_URL&start=0&count=1000" > /workspace/reports/zap-auth-active-report.json
+        curl -s "$$ZAP_API/JSON/core/view/alerts/?baseurl=$$TARGET_URL&start=0&count=1000" > /workspace/reports/zap-auth-active-report.json || \
+          curl -s "$$ZAP_API/JSON/core/view/alerts/?baseurl=$$TARGET_URL&start=0&count=1000" > /tmp/zap-auth-active-report.json
         
         # Relatório HTML
-        curl -s "$$ZAP_API/OTHER/core/other/htmlreport/" > /workspace/reports/zap-auth-active-report.html
+        curl -s "$$ZAP_API/OTHER/core/other/htmlreport/" > /workspace/reports/zap-auth-active-report.html || \
+          curl -s "$$ZAP_API/OTHER/core/other/htmlreport/" > /tmp/zap-auth-active-report.html
+        
+        # Se salvou em /tmp, copia para /workspace/reports
+        if [ -f /tmp/zap-auth-active-report.json ]; then
+          cat /tmp/zap-auth-active-report.json > /workspace/reports/zap-auth-active-report.json 2>/dev/null || \
+            cp /tmp/zap-auth-active-report.json /workspace/reports/ 2>/dev/null || true
+        fi
+        if [ -f /tmp/zap-auth-active-report.html ]; then
+          cat /tmp/zap-auth-active-report.html > /workspace/reports/zap-auth-active-report.html 2>/dev/null || \
+            cp /tmp/zap-auth-active-report.html /workspace/reports/ 2>/dev/null || true
+        fi
         
         # Mostra resumo dos alertas
         echo "=== Resumo dos Alertas Encontrados ==="
