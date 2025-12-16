@@ -330,9 +330,12 @@ steps:
     waitFor:
       - 'zap-scan'
 
-  # 12 Teste de Brute Force com Hydra
-  - name: 'gcr.io/cloud-builders/docker'
-    id: 'hydra-bruteforce'
+  # 12 Teste de Brute Force com Script Python Customizado
+  # O Hydra padrão não funciona com o DVWA porque o formulário de login
+  # requer um token CSRF (user_token) que é regenerado a cada requisição.
+  # Este script Python lida corretamente com o token CSRF.
+  - name: 'python:3.11-slim'
+    id: 'bruteforce-attack'
     entrypoint: 'bash'
     args:
       - '-c'
@@ -340,52 +343,24 @@ steps:
         EXTERNAL_IP=$$(cat /workspace/external_ip.txt)
         if [ "$$EXTERNAL_IP" = "UNAVAILABLE" ]; then
           echo "ERRO: IP externo não disponível, pulando brute force"
-          echo '{"error": "IP não disponível"}' > /workspace/reports/hydra-bruteforce.json
+          echo '{"error": "IP não disponível", "vulnerable": false}' > /workspace/reports/hydra-bruteforce.json
           exit 0
         fi
-        # Cria wordlist realista baseada nos secrets do DVWA/MySQL
-        cat > /workspace/wordlist.txt <<EOF
-        admin
-        password
-        root
-        dvwa
-        123456
-        1234
-        test
-        guest
-        user
-        passw0rd
-        admin123
-        password123
-        EOF
-        # Remove linhas em branco e espaços extras
-        sed -i 's/^[[:space:]]*//;s/[[:space:]]*$$//' /workspace/wordlist.txt
-        sed -i '/^$$/d' /workspace/wordlist.txt
         
-        echo "Iniciando Hydra brute force em $$EXTERNAL_IP..."
-        # Builda imagem customizada do Hydra (se necessário)
-        docker build -f /workspace/Instrumentos/Codigos/DevSecOps/hydra.Dockerfile -t custom-hydra /workspace/Instrumentos/Codigos/DevSecOps
-        # Executa Hydra via Docker customizado
-        # Nota: O formato é "URL:PARAMS:FAIL_STRING" - o FAIL_STRING é o texto que aparece quando login FALHA
-        docker run --rm \
-          -v /workspace:/workspace \
-          custom-hydra \
-          -L /workspace/wordlist.txt \
-          -P /workspace/wordlist.txt \
-          -o /workspace/reports/hydra-bruteforce.txt \
-          $$EXTERNAL_IP \
-          http-post-form "/login.php:username=^USER^&password=^PASS^&Login=Login:F=Login failed" \
-          -f -w 10 -t 4 -V || true
+        echo "=============================================="
+        echo "DVWA Brute Force Attack (com suporte a CSRF)"
+        echo "=============================================="
+        echo "Alvo: http://$$EXTERNAL_IP"
+        echo ""
         
-        # Converte para JSON básico
-        if [ -f /workspace/reports/hydra-bruteforce.txt ]; then
-          echo '{"results": "' > /workspace/reports/hydra-bruteforce.json
-          cat /workspace/reports/hydra-bruteforce.txt | tr '\n' ' ' >> /workspace/reports/hydra-bruteforce.json
-          echo '"}' >> /workspace/reports/hydra-bruteforce.json
-        else
-          echo '{"results": "Nenhuma credencial encontrada ou erro na execução"}' > /workspace/reports/hydra-bruteforce.json
-        fi
-        echo "Hydra brute force concluído"
+        # Executa o script de brute force customizado
+        python3 /workspace/Instrumentos/Codigos/DevSecOps/dvwa-bruteforce.py \
+          "$$EXTERNAL_IP" \
+          "/workspace/reports/hydra-bruteforce.json"
+        
+        echo ""
+        echo "Brute force concluído!"
+        echo "Relatório salvo em: /workspace/reports/hydra-bruteforce.json"
     waitFor:
       - 'get-external-ip'
 
@@ -414,7 +389,7 @@ steps:
       - 'sca-scan'
       - 'checkov'
       - 'trivy'
-      - 'hydra-bruteforce'
+      - 'bruteforce-attack'
 
   # 14 Exibir IP externo do DVWA
   - name: 'gcr.io/cloud-builders/kubectl'

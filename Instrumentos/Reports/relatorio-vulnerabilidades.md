@@ -1,6 +1,6 @@
 # 📊 Análise Completa dos Relatórios de Segurança - Pipeline DevSecOps
 
-**Data:** 16/12/2025 17:34
+**Data:** 16/12/2025 18:04
 
 **Aplicação:** DVWA (Damn Vulnerable Web Application)
 
@@ -16,15 +16,15 @@
 | Semgrep | SAST | 5 | ✅ Executado |
 | Trivy FS | SCA | 0 | ✅ Executado |
 | OWASP ZAP | DAST (Baseline) | 23 | ✅ Executado |
-| OWASP ZAP | DAST (Active Scan) | 0 | ⚠️ Não disponível |
+| OWASP ZAP | DAST (Active Scan) | 12 | ✅ Executado |
 | Checkov | IaC Scan | 63 | ✅ Executado |
 | Hydra | Brute Force | Seguro | ✅ Executado |
 
-**Total de issues de segurança identificados: 1666**
+**Total de issues de segurança identificados: 1678**
 
 ## 1. 📦 Container Scan - Trivy
 
-**Imagem analisada:** `dvwa-app:a664f22`
+**Imagem analisada:** `dvwa-app:179fbe0`
 
 **Sistema Operacional:** debian 9.5
 
@@ -306,12 +306,93 @@
 
 ## 4.1 🔓 DAST Active Scan (Autenticado) - OWASP ZAP
 
-⚠️ Relatório do OWASP ZAP Active Scan não disponível.
+**Alvo:** `http://34.9.5.224`
 
-**Possíveis causas:**
-1. O scan autenticado não foi executado
-2. Erro na autenticação com DVWA
-3. O relatório zap-auth-active-report.json não foi gerado
+**Total de alertas:** 12
+
+**Tipo de scan:** Active Scan com autenticação (detecta SQL Injection, XSS, etc.)
+
+### Distribuição por Risco
+
+| Nível de Risco | Quantidade |
+| --- | --- |
+| Medium | 4 |
+| Low | 5 |
+| Informational | 3 |
+
+### Alertas Encontrados (Active Scan)
+
+**🔵 Session Management Response Identified** (x1)
+- Risco: Informational
+- CWE: CWE--1
+- Descrição: The given response has been identified as containing a session management token. The 'Other Info' fi...
+
+**🟠 Content Security Policy (CSP) Header Not Set** (x2)
+- Risco: Medium
+- CWE: CWE-693
+- Descrição: Content Security Policy (CSP) is an added layer of security that helps to detect and mitigate certai...
+
+**🟡 Cookie No HttpOnly Flag** (x2)
+- Risco: Low
+- CWE: CWE-1004
+- Descrição: A cookie has been set without the HttpOnly flag, which means that the cookie can be accessed by Java...
+
+**🟡 In Page Banner Information Leak** (x1)
+- Risco: Low
+- CWE: CWE-497
+- Descrição: The server returned a version banner string in the response content. Such information leaks may allo...
+
+**🟡 Cookie without SameSite Attribute** (x2)
+- Risco: Low
+- CWE: CWE-1275
+- Descrição: A cookie has been set without the SameSite attribute, which means that the cookie can be sent as a r...
+
+**🟡 Server Leaks Version Information via "Server" HTTP Response Header Field** (x9)
+- Risco: Low
+- CWE: CWE-497
+- Descrição: The web/application server is leaking version information via the "Server" HTTP response header. Acc...
+
+**🟡 X-Content-Type-Options Header Missing** (x5)
+- Risco: Low
+- CWE: CWE-693
+- Descrição: The Anti-MIME-Sniffing header X-Content-Type-Options was not set to 'nosniff'. This allows older ver...
+
+**🟠 Missing Anti-clickjacking Header** (x1)
+- Risco: Medium
+- CWE: CWE-1021
+- Descrição: The response does not protect against 'ClickJacking' attacks. It should include either Content-Secur...
+
+**🔵 Authentication Request Identified** (x1)
+- Risco: Informational
+- CWE: CWE--1
+- Descrição: The given request has been identified as an authentication request. The 'Other Info' field contains ...
+
+**🟠 Directory Browsing** (x3)
+- Risco: Medium
+- CWE: CWE-548
+- Descrição: It is possible to view the directory listing. Directory listing may reveal hidden scripts, include f...
+
+**🟠 HTTP Only Site** (x1)
+- Risco: Medium
+- CWE: CWE-311
+- Descrição: The site is only served under HTTP and not HTTPS....
+
+**🔵 User Agent Fuzzer** (x84)
+- Risco: Informational
+- CWE: CWE-0
+- Descrição: Check for differences in response based on fuzzed User Agent (eg. mobile sites, access as a Search E...
+
+### CWEs Detectados pelo Active Scan
+
+- **CWE--1**: 2 ocorrência(s)
+- **CWE-693**: 2 ocorrência(s)
+- **CWE-1004**: 1 ocorrência(s)
+- **CWE-497**: 2 ocorrência(s)
+- **CWE-1275**: 1 ocorrência(s)
+- **CWE-1021**: 1 ocorrência(s)
+- **CWE-548**: 1 ocorrência(s)
+- **CWE-311**: 1 ocorrência(s)
+- **CWE-0**: 1 ocorrência(s)
 
 ## 5. 🏗️ IaC Scan - Checkov
 
@@ -349,7 +430,7 @@
 
 ## 6. 🔐 Teste de Força Bruta - Hydra
 
-**Ferramenta:** Hydra
+**Ferramenta:** Brute Force Scanner
 
 **Tipo de teste:** Brute Force
 
@@ -378,7 +459,7 @@ O teste de força bruta não encontrou credenciais fracas ou o teste não conseg
 | Weak Session IDs | web_application | CWE-330 | Trivy (Container) | IDs de sessão previsíveis... |
 | Open HTTP Redirect | web_application | CWE-601 | Trivy (Container) | Redirecionamento aberto para sites malic... |
 | JavaScript Attacks | web_application | CWE-749 | OWASP ZAP (Baseline) | Exposição de lógica sensível no cliente... |
-| Content Security Policy Bypass | web_application | CWE-693 | OWASP ZAP (Baseline) | Ausência ou bypass de CSP... |
+| Content Security Policy Bypass | web_application | CWE-693 | OWASP ZAP (Active Scan) | Ausência ou bypass de CSP... |
 | Outdated OS | infrastructure | CWE-1104 | Trivy (Container - EOSL) | Sistema operacional desatualizado (Debia... |
 | Outdated Packages | infrastructure | CWE-1104 | Trivy (Container - EOSL) | Pacotes com vulnerabilidades conhecidas... |
 | Exposed MySQL | infrastructure | CWE-284 | Trivy (Container) | MySQL com credenciais fracas... |
@@ -401,14 +482,14 @@ O teste de força bruta não encontrou credenciais fracas ou o teste não conseg
 Cobertura do pipeline: **11/17** vulnerabilidades conhecidas detectadas (**64.7%**)
 
 Principais motivos para não detecção:
+- Requer brute force/login automatizado.
 - Requer interação humana ou automação avançada.
 - Requer autenticação e/ou ataque ativo.
-- Requer brute force/login automatizado.
 
 Sugestões para aumentar a cobertura:
-- Adicionar brute force (ex: hydra) na pipeline.
-- Fora do escopo do pipeline automatizado.
 - Adicionar ZAP autenticado/active scan na pipeline.
+- Fora do escopo do pipeline automatizado.
+- Adicionar brute force (ex: hydra) na pipeline.
 
 ## 8. 📝 Conclusões e Recomendações para o TCC
 
@@ -430,7 +511,7 @@ Sugestões para aumentar a cobertura:
    - Recomendação: Revisar e corrigir os findings de alta prioridade
 
 4. **ANÁLISE DINÂMICA (DAST)**
-   - OWASP ZAP identificou 23 alertas totais (Baseline Scan: 23 alertas)
+   - OWASP ZAP identificou 35 alertas totais (Baseline Scan: 23 alertas, Active Scan: 12 alertas)
    - Vulnerabilidades web detectadas incluem headers ausentes, cookies inseguros, etc.
    - Active Scan permite detecção de SQLi, XSS e outras vulnerabilidades de injeção
 
@@ -441,16 +522,15 @@ Sugestões para aumentar a cobertura:
 ### Eficácia do Pipeline
 
 **PONTOS FORTES:**
-- ✅ Detecção automatizada de 1666 vulnerabilidades/issues
+- ✅ Detecção automatizada de 1678 vulnerabilidades/issues
 - ✅ Execução totalmente integrada ao CI/CD (Cloud Build)
 - ✅ 6 camadas de análise (Container, IaC, SCA, SAST, DAST, Brute Force)
-- ✅ DAST funcional com 23 tipos de alertas
+- ✅ DAST com Active Scan autenticado (12 alertas)
 - ✅ Relatórios estruturados em JSON para análise automatizada
 - ✅ Pipeline sem hardcode (usa substituições do Cloud Build)
 
 **PONTOS DE MELHORIA:**
 - ⚠️ Cobertura de 64.7% das vulnerabilidades conhecidas - avaliar testes adicionais
-- ⚠️ ZAP Active Scan não gerou resultados - verificar configuração
 - ⚠️ Verificar configuração do Hydra para testes de força bruta
 
 ### Cobertura de Vulnerabilidades DVWA
@@ -462,9 +542,9 @@ Sugestões para aumentar a cobertura:
 **Não detectadas:** 6 (35.3%)
 
 **Motivos para não detecção:**
+- Requer brute force/login automatizado.
 - Requer interação humana ou automação avançada.
 - Requer autenticação e/ou ataque ativo.
-- Requer brute force/login automatizado.
 
 ### Recomendações Baseadas nos Resultados
 
@@ -477,4 +557,4 @@ Sugestões para aumentar a cobertura:
 
 ---
 
-*Relatório gerado automaticamente em 16/12/2025 às 17:34:55*
+*Relatório gerado automaticamente em 16/12/2025 às 18:04:30*

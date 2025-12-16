@@ -396,22 +396,46 @@ def analyze_zap_active():
 
 
 def analyze_hydra_bruteforce():
-    """Analisa relatório do Hydra Brute Force"""
+    """Analisa relatório do Brute Force (Hydra ou script customizado)"""
     data = load_json('hydra-bruteforce.json')
     if not data:
         return None
-    # O formato esperado é {'results': ...}
-    result = data.get('results', '')
+    
     analysis = {
-        'tool': 'Hydra',
+        'tool': data.get('tool', 'Brute Force Scanner'),
         'type': 'Brute Force',
-        'result': result
+        'vulnerable': False,
+        'credentials_found': [],
+        'total_attempts': 0,
+        'csrf_token_required': False,
+        'details': []
     }
-    # Se encontrar credenciais, marca como vulnerável
-    if result and 'Nenhuma credencial encontrada' not in result and 'erro' not in result.lower():
-        analysis['vulnerable'] = True
-    else:
+    
+    # Novo formato do script customizado
+    if 'successful_logins' in data:
+        analysis['credentials_found'] = data.get('successful_logins', [])
+        analysis['total_attempts'] = data.get('total_attempts', 0)
+        analysis['csrf_token_required'] = data.get('csrf_token_required', False)
+        analysis['vulnerable'] = data.get('vulnerable', False)
+        analysis['details'] = data.get('details', [])
+        
+        if analysis['credentials_found']:
+            analysis['result'] = f"VULNERÁVEL: {len(analysis['credentials_found'])} credenciais fracas encontradas"
+        else:
+            analysis['result'] = f"Nenhuma credencial fraca encontrada em {analysis['total_attempts']} tentativas"
+    
+    # Formato antigo do Hydra (compatibilidade)
+    elif 'results' in data:
+        result = data.get('results', '')
+        analysis['result'] = result
+        if result and 'Nenhuma credencial encontrada' not in result and 'erro' not in result.lower():
+            analysis['vulnerable'] = True
+    
+    # Erro de IP não disponível
+    elif 'error' in data:
+        analysis['result'] = data.get('error', 'Erro desconhecido')
         analysis['vulnerable'] = False
+    
     return analysis
 
 
