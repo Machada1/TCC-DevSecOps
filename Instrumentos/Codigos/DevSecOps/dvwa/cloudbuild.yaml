@@ -241,6 +241,8 @@ steps:
           exit 0
         fi
         TARGET_URL="http://$$EXTERNAL_IP/login.php"
+        # Instala zap-cli
+        apt-get update && apt-get install -y python3-pip && pip3 install zap-cli
         # Inicia ZAP em modo daemon
         zap.sh -daemon -port 8090 -host 0.0.0.0 -config api.disablekey=true &
         sleep 30
@@ -248,9 +250,6 @@ steps:
         curl -c /workspace/cookie.txt -d "username=${_DVWA_USER}&password=${_DVWA_PASS}&Login=Login" "$$TARGET_URL"
         # Importa cookie para ZAP
         zap-cli --zap-url http://localhost:8090 --api-key '' load-cookies /workspace/cookie.txt http://$$EXTERNAL_IP
-        # Ativa contexto (opcional)
-        # zap-cli context new dvwa
-        # zap-cli context include dvwa http://$$EXTERNAL_IP/.*
         # Active scan autenticado
         zap-cli --zap-url http://localhost:8090 --api-key '' active-scan http://$$EXTERNAL_IP
         # Exporta relatório
@@ -296,7 +295,7 @@ steps:
         # Executa Hydra via Docker
         docker run --rm \
           -v /workspace:/workspace \
-          vanhauser/thc-hydra \
+          frapsoft/hydra \
           -L /workspace/wordlist.txt \
           -P /workspace/wordlist.txt \
           -o /workspace/reports/hydra-bruteforce.txt \
