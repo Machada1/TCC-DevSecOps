@@ -1,6 +1,6 @@
 # 📊 Análise Completa dos Relatórios de Segurança - Pipeline DevSecOps
 
-**Data:** 16/12/2025 18:09
+**Data:** 16/12/2025 18:14
 
 **Aplicação:** DVWA (Damn Vulnerable Web Application)
 
@@ -18,9 +18,9 @@
 | OWASP ZAP | DAST (Baseline) | 23 | ✅ Executado |
 | OWASP ZAP | DAST (Active Scan) | 12 | ✅ Executado |
 | Checkov | IaC Scan | 63 | ✅ Executado |
-| Hydra | Brute Force | Seguro | ✅ Executado |
+| Hydra | Brute Force | Vulnerável | ✅ Executado |
 
-**Total de issues de segurança identificados: 1678**
+**Total de issues de segurança identificados: 1679**
 
 ## 1. 📦 Container Scan - Trivy
 
@@ -430,23 +430,23 @@
 
 ## 6. 🔐 Teste de Força Bruta - Hydra
 
-**Ferramenta:** Brute Force Scanner
+**Ferramenta:** DVWA Brute Force Scanner (Custom)
 
 **Tipo de teste:** Brute Force
 
-### ✅ Nenhuma Vulnerabilidade de Força Bruta Detectada
+### ⚠️ Vulnerabilidade Detectada!
 
-**Resultado:** Nenhuma credencial encontrada ou erro na execução
+**Resultado:** VULNERÁVEL: 93 credenciais fracas encontradas
 
-O teste de força bruta não encontrou credenciais fracas ou o teste não conseguiu ser executado com sucesso.
+A aplicação é vulnerável a ataques de força bruta. Credenciais fracas foram encontradas.
 
 ## 7. 🎯 Comparação com Vulnerabilidades Conhecidas do DVWA
 
 **Vulnerabilidades conhecidas do DVWA:** 17
 
-**Detectadas pelo pipeline:** 11 (64.7%)
+**Detectadas pelo pipeline:** 13 (76.5%)
 
-**Não detectadas:** 6 (35.3%)
+**Não detectadas:** 4 (23.5%)
 
 ### ✅ Vulnerabilidades Detectadas
 
@@ -457,11 +457,13 @@ O teste de força bruta não encontrou credenciais fracas ou o teste não conseg
 | Command Injection | web_application | CWE-78 | Trivy (Container) | Permite execução de comandos do sistema ... |
 | CSRF | web_application | CWE-352 | Trivy (Container) | Cross-Site Request Forgery... |
 | Weak Session IDs | web_application | CWE-330 | Trivy (Container) | IDs de sessão previsíveis... |
+| Brute Force | web_application | CWE-307 | Hydra | Ausência de proteção contra força bruta... |
 | Open HTTP Redirect | web_application | CWE-601 | Trivy (Container) | Redirecionamento aberto para sites malic... |
 | JavaScript Attacks | web_application | CWE-749 | OWASP ZAP (Baseline) | Exposição de lógica sensível no cliente... |
 | Content Security Policy Bypass | web_application | CWE-693 | OWASP ZAP (Active Scan) | Ausência ou bypass de CSP... |
 | Outdated OS | infrastructure | CWE-1104 | Trivy (Container - EOSL) | Sistema operacional desatualizado (Debia... |
 | Outdated Packages | infrastructure | CWE-1104 | Trivy (Container - EOSL) | Pacotes com vulnerabilidades conhecidas... |
+| Default Credentials | infrastructure | CWE-798 | Hydra | Credenciais padrão (admin/password)... |
 | Exposed MySQL | infrastructure | CWE-284 | Trivy (Container) | MySQL com credenciais fracas... |
 
 
@@ -471,25 +473,21 @@ O teste de força bruta não encontrou credenciais fracas ou o teste não conseg
 | --- | --- | --- | --- | --- | --- |
 | File Inclusion (LFI/RFI) | web_application | CWE-98 | A03:2021 - Injection | Requer autenticação e/ou ataque ativo. | Adicionar ZAP autenticado/active scan na pipeline. |
 | File Upload | web_application | CWE-434 | A04:2021 - Insecure Design | Requer autenticação e/ou ataque ativo. | Adicionar ZAP autenticado/active scan na pipeline. |
-| Brute Force | web_application | CWE-307 | A07:2021 - Identification and  | Requer brute force/login automatizado. | Adicionar brute force (ex: hydra) na pipeline. |
 | Insecure CAPTCHA | web_application | CWE-804 | A07:2021 - Identification and  | Requer interação humana ou automação avançada. | Fora do escopo do pipeline automatizado. |
 | Authorisation Bypass | web_application | CWE-639 | A01:2021 - Broken Access Contr | Requer autenticação e/ou ataque ativo. | Adicionar ZAP autenticado/active scan na pipeline. |
-| Default Credentials | infrastructure | CWE-798 | N/A | Requer brute force/login automatizado. | Adicionar brute force (ex: hydra) na pipeline. |
 
 
 ### Resumo da Cobertura
 
-Cobertura do pipeline: **11/17** vulnerabilidades conhecidas detectadas (**64.7%**)
+Cobertura do pipeline: **13/17** vulnerabilidades conhecidas detectadas (**76.5%**)
 
 Principais motivos para não detecção:
 - Requer interação humana ou automação avançada.
 - Requer autenticação e/ou ataque ativo.
-- Requer brute force/login automatizado.
 
 Sugestões para aumentar a cobertura:
-- Adicionar ZAP autenticado/active scan na pipeline.
 - Fora do escopo do pipeline automatizado.
-- Adicionar brute force (ex: hydra) na pipeline.
+- Adicionar ZAP autenticado/active scan na pipeline.
 
 ## 8. 📝 Conclusões e Recomendações para o TCC
 
@@ -516,8 +514,9 @@ Sugestões para aumentar a cobertura:
    - Active Scan permite detecção de SQLi, XSS e outras vulnerabilidades de injeção
 
 5. **TESTE DE FORÇA BRUTA**
-   - Hydra não conseguiu encontrar credenciais por força bruta
-   - Pode indicar proteção adequada ou necessidade de ajuste no teste
+   - ⚠️ Hydra detectou credenciais fracas na aplicação
+   - A aplicação é vulnerável a ataques de força bruta
+   - Recomendação: Implementar rate limiting e políticas de senha fortes
 
 ### Eficácia do Pipeline
 
@@ -529,22 +528,17 @@ Sugestões para aumentar a cobertura:
 - ✅ Relatórios estruturados em JSON para análise automatizada
 - ✅ Pipeline sem hardcode (usa substituições do Cloud Build)
 
-**PONTOS DE MELHORIA:**
-- ⚠️ Cobertura de 64.7% das vulnerabilidades conhecidas - avaliar testes adicionais
-- ⚠️ Verificar configuração do Hydra para testes de força bruta
-
 ### Cobertura de Vulnerabilidades DVWA
 
 **Total de vulnerabilidades conhecidas:** 17
 
-**Detectadas pelo pipeline:** 11 (64.7%)
+**Detectadas pelo pipeline:** 13 (76.5%)
 
-**Não detectadas:** 6 (35.3%)
+**Não detectadas:** 4 (23.5%)
 
 **Motivos para não detecção:**
 - Requer interação humana ou automação avançada.
 - Requer autenticação e/ou ataque ativo.
-- Requer brute force/login automatizado.
 
 ### Recomendações Baseadas nos Resultados
 
@@ -557,4 +551,4 @@ Sugestões para aumentar a cobertura:
 
 ---
 
-*Relatório gerado automaticamente em 16/12/2025 às 18:09:02*
+*Relatório gerado automaticamente em 16/12/2025 às 18:14:59*
