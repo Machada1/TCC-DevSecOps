@@ -381,31 +381,77 @@ def compare_with_known_vulnerabilities(trivy_analysis, semgrep_analysis, zap_ana
         'not_detected': [],
         'additional_findings': []
     }
-    
+
     # CWEs encontrados pelas ferramentas
     detected_cwes = set()
-    
+    cwe_to_tool = {}
+
+    # Trivy Container
     if trivy_analysis:
-        detected_cwes.update(trivy_analysis['by_cwe'].keys())
-    
+        for cwe in trivy_analysis['by_cwe'].keys():
+            detected_cwes.add(cwe)
+            cwe_to_tool[cwe] = 'Trivy (Container)'
+
+    # Trivy SCA
+    trivy_sca = None
+    try:
+        from inspect import currentframe
+        frame = currentframe()
+        trivy_sca = frame.f_back.f_locals.get('trivy_sca', None)
+    except Exception:
+        trivy_sca = None
+    if not trivy_sca:
+        try:
+            import builtins
+            trivy_sca = getattr(builtins, 'trivy_sca', None)
+        except Exception:
+            trivy_sca = None
+    if trivy_sca:
+        # SCA não traz CWE por padrão, mas pode ser extendido se necessário
+        pass
+
+    # Semgrep
     if semgrep_analysis:
-        for cwe_list in [f['cwe'] for f in semgrep_analysis['findings']]:
-            for cwe in cwe_list:
-                # Normalizar formato CWE
+        for f in semgrep_analysis['findings']:
+            for cwe in f.get('cwe', []):
                 if 'CWE-' in cwe:
-                    detected_cwes.add(cwe.split(':')[0] if ':' in cwe else cwe)
-    
+                    norm_cwe = cwe.split(':')[0] if ':' in cwe else cwe
+                    detected_cwes.add(norm_cwe)
+                    cwe_to_tool[norm_cwe] = 'Semgrep'
+
+    # ZAP
     if zap_analysis and 'by_cwe' in zap_analysis:
-        detected_cwes.update(zap_analysis['by_cwe'].keys())
+        for cwe in zap_analysis['by_cwe'].keys():
+            detected_cwes.add(cwe)
+            cwe_to_tool[cwe] = 'OWASP ZAP'
+
+    # Checkov
+    checkov = None
+    try:
+        from inspect import currentframe
+        frame = currentframe()
+        checkov = frame.f_back.f_locals.get('checkov', None)
+    except Exception:
+        checkov = None
+    if not checkov:
+        try:
+            import builtins
+            checkov = getattr(builtins, 'checkov', None)
+        except Exception:
+            checkov = None
+    if checkov:
+        for finding in checkov.get('findings', []):
+            cwe = finding.get('check_id', '')
+            # Checkov check_id pode não ser um CWE, mas se for, adiciona
+            if cwe.startswith('CWE-'):
+                detected_cwes.add(cwe)
+                cwe_to_tool[cwe] = 'Checkov'
     
     # Verificar cobertura das vulnerabilidades conhecidas
     for category, vulns in DVWA_KNOWN_VULNERABILITIES.items():
         for vuln_name, vuln_info in vulns.items():
             cwe = vuln_info.get('cwe', '')
-            
-            # Verificar se foi detectado
-            detected = any(cwe in detected_cwe for detected_cwe in detected_cwes)
-            
+            detected = cwe in detected_cwes
             entry = {
                 'name': vuln_name,
                 'category': category,
@@ -413,12 +459,49 @@ def compare_with_known_vulnerabilities(trivy_analysis, semgrep_analysis, zap_ana
                 'owasp': vuln_info.get('owasp', 'N/A'),
                 'description': vuln_info.get('description', '')
             }
-            
             if detected:
+                entry['ferramenta'] = cwe_to_tool.get(cwe, '-')
                 coverage['detected'].append(entry)
             else:
+                entry['ferramenta'] = '-'
                 coverage['not_detected'].append(entry)
-    
+
+    # Preencher motivo, sugestao e ferramenta para todos os itens
+    def motivo_sugestao(vuln):
+        cwe = vuln.get('cwe', '')
+        name = vuln.get('name', '')
+        category = vuln.get('category', '')
+        # Infraestrutura
+        if category == 'infrastructure':
+            if name in ['Outdated OS', 'Outdated Packages']:
+                return ("Detectada por Trivy", "-", "Trivy")
+            if name == 'Default Credentials':
+                return ("Requer brute force/login automatizado", "Adicionar brute force (ex: hydra) na pipeline", "-")
+            return ("Não detectável por SAST/SCA/IaC", "-", "-")
+        # Web application
+        if name in ['File Inclusion (LFI/RFI)', 'File Upload', 'Brute Force', 'Authorisation Bypass', 'CSRF', 'Weak Session IDs']:
+            return ("Requer autenticação e/ou ataque ativo", "Adicionar ZAP autenticado/active scan na pipeline", "-")
+        if name in ['SQL Injection', 'Cross-Site Scripting (XSS)', 'Command Injection']:
+            return ("Requer ataque ativo", "Adicionar active scan no ZAP", "-")
+        if name == 'Insecure CAPTCHA':
+            return ("Requer interação humana ou automação avançada", "Fora do escopo do pipeline automatizado", "-")
+        if name == 'JavaScript Attacks':
+            return ("Requer SAST para JS/PHP", "Adicionar SAST específico para PHP/JS", "-")
+        if name == 'Content Security Policy Bypass':
+            return ("Pode ser detectado por DAST, mas depende da regra e contexto", "Verificar configuração do ZAP para CSP", "-")
+        return ("Cobertura limitada pelo tipo de teste atual", "Analisar possibilidade de ajuste na pipeline", "-")
+
+    # Atualiza todos os itens com motivo/sugestao/ferramenta
+    for entry in coverage['detected']:
+        motivo, sugestao, ferramenta = motivo_sugestao(entry)
+        entry['motivo'] = motivo
+        entry['sugestao'] = sugestao
+        entry['ferramenta'] = ferramenta if ferramenta != '-' else entry.get('ferramenta', '-')
+    for entry in coverage['not_detected']:
+        motivo, sugestao, ferramenta = motivo_sugestao(entry)
+        entry['motivo'] = motivo
+        entry['sugestao'] = sugestao
+        entry['ferramenta'] = ferramenta if ferramenta != '-' else entry.get('ferramenta', '-')
     return coverage
 
 
@@ -709,74 +792,62 @@ def generate_report():
     report.add_header("6. 🎯 Comparação com Vulnerabilidades Conhecidas do DVWA", 2)
     
     coverage = compare_with_known_vulnerabilities(trivy_container, semgrep, zap)
-    
+
     total_known = len(coverage['detected']) + len(coverage['not_detected'])
     coverage_pct = (len(coverage['detected']) / total_known * 100) if total_known > 0 else 0
-    
+
     report.add(f"**Vulnerabilidades conhecidas do DVWA:** {total_known}")
     report.add()
     report.add(f"**Detectadas pelo pipeline:** {len(coverage['detected'])} ({coverage_pct:.1f}%)")
     report.add()
     report.add(f"**Não detectadas:** {len(coverage['not_detected'])} ({100-coverage_pct:.1f}%)")
     report.add()
-    
+
     report.add_header("✅ Vulnerabilidades Detectadas", 3)
     if coverage['detected']:
         report.add_table(
-            ["Vulnerabilidade", "Categoria", "CWE", "Descrição"],
-            [[v['name'], v['category'], v['cwe'], v['description'][:40] + "..."] for v in coverage['detected']]
+            ["Vulnerabilidade", "Categoria", "CWE", "Ferramenta", "Descrição"],
+            [[v['name'], v['category'], v['cwe'], v.get('ferramenta', '-'), v['description'][:40] + "..."] for v in coverage['detected']]
         )
     else:
         report.add("Nenhuma vulnerabilidade conhecida foi detectada.")
     report.add()
-    
+
     report.add_header("❌ Vulnerabilidades Não Detectadas", 3)
-    explicacoes = {
-        'CWE-89': "Requer ataque ativo (não detectado por DAST baseline). ZAP baseline não executa SQLi.",
-        'CWE-79': "Requer ataque ativo (não detectado por DAST baseline). ZAP baseline não executa XSS.",
-        'CWE-98': "Requer ataque ativo e interação autenticada. ZAP baseline não executa LFI/RFI.",
-        'CWE-434': "Requer upload de arquivo e interação autenticada. ZAP baseline não executa File Upload.",
-        'CWE-352': "Requer interação autenticada e envio de requests forjados (CSRF).",
-        'CWE-330': "Requer análise de tokens de sessão após login. ZAP baseline não testa autenticação.",
-        'CWE-307': "Requer tentativa de brute force em login. ZAP baseline não executa brute force.",
-        'CWE-804': "Requer interação com CAPTCHA. ZAP baseline não testa CAPTCHA.",
-        'CWE-639': "Requer acesso a áreas restritas e manipulação de permissões.",
-        'CWE-749': "Requer análise de código JS da aplicação. SAST não cobre código PHP/JS do DVWA.",
-        'CWE-693': "Pode ser detectado por DAST. Se não foi, o header CSP pode estar parcialmente presente ou a regra do ZAP não foi acionada.",
-        'CWE-1104': "Detectado por Trivy (Outdated OS/Packages).",
-        'CWE-798': "Requer tentativa de login com credenciais padrão. ZAP baseline não executa brute force.",
-    }
     if coverage['not_detected']:
         report.add_table(
-            ["Vulnerabilidade", "Categoria", "CWE", "OWASP", "Motivo não detectada"],
+            ["Vulnerabilidade", "Categoria", "CWE", "OWASP", "Motivo", "Sugestão"],
             [
                 [
                     v['name'],
                     v['category'],
                     v['cwe'],
                     v.get('owasp', 'N/A')[:30] if v.get('owasp') else 'N/A',
-                    explicacoes.get(v['cwe'], "Cobertura limitada pelo tipo de teste automatizado atual.")
+                    v.get('motivo', '-'),
+                    v.get('sugestao', '-')
                 ]
                 for v in coverage['not_detected']
             ]
         )
     report.add()
 
-    report.add_header("Análise da Cobertura", 3)
-    report.add("""
-As vulnerabilidades não detectadas são, em sua maioria, vulnerabilidades web que:
-- Requerem autenticação para serem exploradas (ex: SQLi, XSS, File Upload, Brute Force, CSRF)
-- Ou requerem ataques ativos (ex: SQLi, XSS, Command Injection) que não são realizados pelo ZAP baseline scan.
-
-**Motivos principais:**
-- O ZAP baseline só faz passive scan em páginas públicas, não executa ataques ativos nem testa áreas autenticadas.
-- SAST/SCA/IaC não analisam código PHP da aplicação DVWA.
-
-**Como aumentar a cobertura:**
-- Configurar o ZAP para scan autenticado (login automático)
-- Usar o modo full/active scan do ZAP
-- Adicionar SAST específico para PHP
-""")
+    # Seção de análise de cobertura agora é apenas um sumário dinâmico
+    total = len(coverage['detected']) + len(coverage['not_detected'])
+    pct = (len(coverage['detected']) / total * 100) if total > 0 else 0
+    report.add_header("Resumo da Cobertura", 3)
+    report.add(f"Cobertura do pipeline: **{len(coverage['detected'])}/{total}** vulnerabilidades conhecidas detectadas (**{pct:.1f}%**)")
+    report.add()
+    if coverage['not_detected']:
+        report.add("Principais motivos para não detecção:")
+        motivos = set(v['motivo'] for v in coverage['not_detected'])
+        for m in motivos:
+            report.add(f"- {m}")
+        report.add()
+        report.add("Sugestões para aumentar a cobertura:")
+        sugestoes = set(v['sugestao'] for v in coverage['not_detected'] if v['sugestao'] and v['sugestao'] != '-')
+        for s in sugestoes:
+            report.add(f"- {s}")
+        report.add()
     
     # ========================================================================
     # SEÇÃO 7: CONCLUSÕES E RECOMENDAÇÕES

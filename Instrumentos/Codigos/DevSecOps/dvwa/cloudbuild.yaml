@@ -1,9 +1,6 @@
 
 # cloudbuild.yaml
 # Pipeline completo: build -> push -> segurança -> deploy -> teste dinâmico
-# ATENÇÃO: Não declare ou use EXTERNAL_IP como substituição do Cloud Build!
-# O IP externo é obtido e propagado apenas via shell script e arquivo /workspace/external_ip.txt.
-
 substitutions:
   _ARTIFACT_REPO: "devsecops-repo"
   _REGION: "us-central1"
@@ -16,7 +13,6 @@ substitutions:
   _SOURCE_IMAGE: "vulnerables/web-dvwa:latest"
   _DVWA_USER: "admin"
   _DVWA_PASS: "password"
-# NUNCA declare _EXTERNAL_IP aqui!
 
 steps:
   # 0 Criar diretório de relatórios
@@ -231,7 +227,7 @@ steps:
     waitFor:
       - 'get-external-ip'
 
-# 9.2 ZAP autenticado + active scan
+# 9.1 ZAP autenticado + active scan
   - name: 'owasp/zap2docker-stable'
     id: 'zap-auth-active-scan'
     entrypoint: 'sh'
@@ -264,7 +260,7 @@ steps:
     waitFor:
       - 'get-external-ip'
 
-# 9.1 Teste de BruteForce com o Hydra
+# 9.2 Teste de BruteForce com o Hydra
   - name: 'docker://vanhauser-thc/thc-hydra'
     id: 'hydra-bruteforce'
     entrypoint: bash

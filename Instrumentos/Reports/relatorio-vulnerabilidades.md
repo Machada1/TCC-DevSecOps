@@ -1,6 +1,6 @@
 # 📊 Análise Completa dos Relatórios de Segurança - Pipeline DevSecOps
 
-**Data:** 12/12/2025 17:43
+**Data:** 16/12/2025 00:24
 
 **Aplicação:** DVWA (Damn Vulnerable Web Application)
 
@@ -308,59 +308,47 @@
 
 ### ✅ Vulnerabilidades Detectadas
 
-| Vulnerabilidade | Categoria | CWE | Descrição |
-| --- | --- | --- | --- |
-| SQL Injection | web_application | CWE-89 | Permite injeção de comandos SQL em campo... |
-| Cross-Site Scripting (XSS) | web_application | CWE-79 | Permite execução de scripts maliciosos n... |
-| Command Injection | web_application | CWE-78 | Permite execução de comandos do sistema ... |
-| CSRF | web_application | CWE-352 | Cross-Site Request Forgery... |
-| Weak Session IDs | web_application | CWE-330 | IDs de sessão previsíveis... |
-| Open HTTP Redirect | web_application | CWE-601 | Redirecionamento aberto para sites malic... |
-| JavaScript Attacks | web_application | CWE-749 | Exposição de lógica sensível no cliente... |
-| Content Security Policy Bypass | web_application | CWE-693 | Ausência ou bypass de CSP... |
-| Exposed MySQL | infrastructure | CWE-284 | MySQL com credenciais fracas... |
+| Vulnerabilidade | Categoria | CWE | Ferramenta | Descrição |
+| --- | --- | --- | --- | --- |
+| SQL Injection | web_application | CWE-89 | Trivy (Container) | Permite injeção de comandos SQL em campo... |
+| Cross-Site Scripting (XSS) | web_application | CWE-79 | Trivy (Container) | Permite execução de scripts maliciosos n... |
+| Command Injection | web_application | CWE-78 | Trivy (Container) | Permite execução de comandos do sistema ... |
+| CSRF | web_application | CWE-352 | Trivy (Container) | Cross-Site Request Forgery... |
+| Weak Session IDs | web_application | CWE-330 | Trivy (Container) | IDs de sessão previsíveis... |
+| Open HTTP Redirect | web_application | CWE-601 | Trivy (Container) | Redirecionamento aberto para sites malic... |
+| JavaScript Attacks | web_application | CWE-749 | OWASP ZAP | Exposição de lógica sensível no cliente... |
+| Content Security Policy Bypass | web_application | CWE-693 | OWASP ZAP | Ausência ou bypass de CSP... |
+| Exposed MySQL | infrastructure | CWE-284 | Trivy (Container) | MySQL com credenciais fracas... |
 
 
 ### ❌ Vulnerabilidades Não Detectadas
 
-| Vulnerabilidade | Categoria | CWE | OWASP |
-| --- | --- | --- | --- |
-| File Inclusion (LFI/RFI) | web_application | CWE-98 | A03:2021 - Injection |
-| File Upload | web_application | CWE-434 | A04:2021 - Insecure Design |
-| Brute Force | web_application | CWE-307 | A07:2021 - Identification and  |
-| Insecure CAPTCHA | web_application | CWE-804 | A07:2021 - Identification and  |
-| Authorisation Bypass | web_application | CWE-639 | A01:2021 - Broken Access Contr |
-| Outdated OS | infrastructure | CWE-1104 | N/A |
-| Outdated Packages | infrastructure | CWE-1104 | N/A |
-| Default Credentials | infrastructure | CWE-798 | N/A |
+| Vulnerabilidade | Categoria | CWE | OWASP | Motivo | Sugestão |
+| --- | --- | --- | --- | --- | --- |
+| File Inclusion (LFI/RFI) | web_application | CWE-98 | A03:2021 - Injection | Requer autenticação e/ou ataque ativo | Adicionar ZAP autenticado/active scan na pipeline |
+| File Upload | web_application | CWE-434 | A04:2021 - Insecure Design | Requer autenticação e/ou ataque ativo | Adicionar ZAP autenticado/active scan na pipeline |
+| Brute Force | web_application | CWE-307 | A07:2021 - Identification and  | Requer autenticação e/ou ataque ativo | Adicionar ZAP autenticado/active scan na pipeline |
+| Insecure CAPTCHA | web_application | CWE-804 | A07:2021 - Identification and  | Requer interação humana ou automação avançada | Fora do escopo do pipeline automatizado |
+| Authorisation Bypass | web_application | CWE-639 | A01:2021 - Broken Access Contr | Requer autenticação e/ou ataque ativo | Adicionar ZAP autenticado/active scan na pipeline |
+| Outdated OS | infrastructure | CWE-1104 | N/A | Detectada por Trivy | - |
+| Outdated Packages | infrastructure | CWE-1104 | N/A | Detectada por Trivy | - |
+| Default Credentials | infrastructure | CWE-798 | N/A | Requer brute force/login automatizado | Adicionar brute force (ex: hydra) na pipeline |
 
 
-### Análise da Cobertura
+### Resumo da Cobertura
 
+Cobertura do pipeline: **9/17** vulnerabilidades conhecidas detectadas (**52.9%**)
 
-As vulnerabilidades não detectadas são predominantemente:
+Principais motivos para não detecção:
+- Detectada por Trivy
+- Requer autenticação e/ou ataque ativo
+- Requer brute force/login automatizado
+- Requer interação humana ou automação avançada
 
-1. **VULNERABILIDADES WEB (SQL Injection, XSS, etc.)**
-   - Requerem análise DINÂMICA (DAST) com a aplicação em execução
-   - O SAST analisou arquivos de configuração, não código PHP do DVWA
-
-2. **FALHAS DE AUTENTICAÇÃO (Brute Force, Weak Session IDs)**
-   - Requerem testes comportamentais da aplicação
-
-3. **FALHAS DE AUTORIZAÇÃO (CSRF, Authorization Bypass)**
-   - Requerem interação HTTP real com a aplicação
-
-**📌 CONCLUSÃO:**
-
-O pipeline atual é eficaz para:
-- ✅ Vulnerabilidades de infraestrutura (Container, OS)
-- ✅ Misconfigurações (Kubernetes, Terraform, IaC)
-- ✅ Dependências vulneráveis (SCA)
-- ✅ Testes dinâmicos de segurança (DAST com OWASP ZAP)
-
-Para maior cobertura, considerar:
-- ⚠️ Adicionar SAST específico para PHP (linguagem do DVWA)
-- ⚠️ Executar scan ZAP autenticado para testar áreas protegidas
+Sugestões para aumentar a cobertura:
+- Fora do escopo do pipeline automatizado
+- Adicionar ZAP autenticado/active scan na pipeline
+- Adicionar brute force (ex: hydra) na pipeline
 
 ## 7. 📝 Conclusões e Recomendações para o TCC
 
@@ -422,4 +410,4 @@ Para maior cobertura, considerar:
 
 ---
 
-*Relatório gerado automaticamente em 12/12/2025 às 17:43:47*
+*Relatório gerado automaticamente em 16/12/2025 às 00:24:00*
