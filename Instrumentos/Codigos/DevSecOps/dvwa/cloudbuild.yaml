@@ -273,14 +273,20 @@ steps:
           echo '{"error": "IP não disponível"}' > /workspace/reports/hydra-bruteforce.json
           exit 0
         fi
-        # Cria wordlist temporário
+        # Cria wordlist realista baseada nos secrets do DVWA/MySQL
         cat > /workspace/wordlist.txt <<EOF
-        password
         admin
+        password
+        root
+        dvwa
         123456
         1234
-        root
         test
+        guest
+        user
+        passw0rd
+        admin123
+        password123
         EOF
         # Remove linhas em branco e espaços extras
         sed -i 's/^[[:space:]]*//;s/[[:space:]]*$$//' /workspace/wordlist.txt
@@ -295,7 +301,7 @@ steps:
           -P /workspace/wordlist.txt \
           -o /workspace/reports/hydra-bruteforce.txt \
           $$EXTERNAL_IP \
-          http-post-form "/login.php:username=^USER^&password=^PASS^&Login=Login:Login failed" \
+          http-post-form "/login.php:username=^USER^&password=^PASS^&Login=Login failed" \
           -f -w 10 -t 4 || true
         
         # Converte para JSON básico
