@@ -228,7 +228,7 @@ steps:
       - 'get-external-ip'
 
 # 9.1 ZAP autenticado + active scan
-  - name: 'owasp/zap2docker-stable'
+  - name: 'ghcr.io/zaproxy/zaproxy:stable'
     id: 'zap-auth-active-scan'
     entrypoint: 'sh'
     args:
@@ -261,7 +261,7 @@ steps:
       - 'get-external-ip'
 
 # 9.2 Teste de BruteForce com o Hydra
-  - name: 'docker://vanhauser-thc/thc-hydra'
+  - name: 'vanhauser/thc-hydra'
     id: 'hydra-bruteforce'
     entrypoint: bash
     args:
