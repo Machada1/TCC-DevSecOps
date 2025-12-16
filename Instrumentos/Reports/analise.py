@@ -1093,60 +1093,189 @@ def generate_report():
     report.add_header("8. 📝 Conclusões e Recomendações para o TCC", 2)
     
     report.add_header("Principais Descobertas", 3)
-    report.add("""
-1. **RISCO CRÍTICO - SISTEMA OPERACIONAL**
-   - A imagem base do DVWA utiliza Debian 9.5, que está em End of Support Life (EOSL) desde 2020
-   - Isso resulta em centenas de vulnerabilidades CRÍTICAS e de ALTA severidade sem patches disponíveis
-
-2. **CONFIGURAÇÃO KUBERNETES INSEGURA**
-   - Os manifestos de deployment não implementam SecurityContext adequado
-   - `runAsNonRoot` não configurado (CWE-250)
-   - `allowPrivilegeEscalation` não bloqueado (CWE-732)
-   - Permite potencial escalação de privilégios
-
-3. **CÓDIGO FONTE LIMPO**
-   - Nenhuma vulnerabilidade foi encontrada nas dependências do projeto Terraform/CloudBuild
-   - Indica boas práticas de composição de software
-
-4. **DAST OPERACIONAL**
-   - OWASP ZAP executando com sucesso, detectando vulnerabilidades web
-   - Headers de segurança ausentes identificados (CSP, X-Content-Type-Options)
-   - Cookies sem flags de segurança detectados
-""")
+    
+    # Descobertas dinâmicas baseadas nos dados
+    discoveries = []
+    
+    # 1. Sistema Operacional
+    if trivy_container and trivy_container.get('eosl'):
+        os_name = trivy_container.get('os', 'N/A')
+        critical_count = trivy_container['by_severity'].get('CRITICAL', 0)
+        high_count = trivy_container['by_severity'].get('HIGH', 0)
+        discoveries.append(f"""1. **RISCO CRÍTICO - SISTEMA OPERACIONAL**
+   - A imagem base utiliza {os_name}, que está em End of Support Life (EOSL)
+   - Foram encontradas {critical_count} vulnerabilidades CRÍTICAS e {high_count} de ALTA severidade
+   - Recomendação: Migrar para imagem base com suporte ativo""")
+    
+    # 2. Kubernetes/IaC
+    if checkov and checkov.get('failed', 0) > 0:
+        iac_issues = checkov['failed']
+        discoveries.append(f"""2. **CONFIGURAÇÃO KUBERNETES/IAC**
+   - Checkov identificou {iac_issues} problemas de configuração de segurança
+   - Incluem: SecurityContext, RBAC, Network Policies, entre outros
+   - Recomendação: Revisar e aplicar as correções sugeridas pelo Checkov""")
+    
+    # 3. SAST
+    if semgrep:
+        sast_findings = len(semgrep.get('findings', []))
+        if sast_findings > 0:
+            discoveries.append(f"""3. **ANÁLISE ESTÁTICA (SAST)**
+   - Semgrep identificou {sast_findings} potenciais problemas no código
+   - CWEs encontrados: {', '.join(list(semgrep.get('by_cwe', {}).keys())[:5])}
+   - Recomendação: Revisar e corrigir os findings de alta prioridade""")
+        else:
+            discoveries.append(f"""3. **ANÁLISE ESTÁTICA (SAST)**
+   - Semgrep não encontrou vulnerabilidades significativas no código analisado
+   - Indica boas práticas de desenvolvimento seguro""")
+    
+    # 4. DAST
+    zap_baseline_alerts = len(zap.get('alerts', [])) if zap and 'alerts' in zap else 0
+    zap_active_alerts = len(zap_active.get('alerts', [])) if zap_active and 'alerts' in zap_active else 0
+    total_dast_alerts = zap_baseline_alerts + zap_active_alerts
+    
+    if total_dast_alerts > 0:
+        dast_details = []
+        if zap_baseline_alerts > 0:
+            dast_details.append(f"Baseline Scan: {zap_baseline_alerts} alertas")
+        if zap_active_alerts > 0:
+            dast_details.append(f"Active Scan: {zap_active_alerts} alertas")
+        discoveries.append(f"""4. **ANÁLISE DINÂMICA (DAST)**
+   - OWASP ZAP identificou {total_dast_alerts} alertas totais ({', '.join(dast_details)})
+   - Vulnerabilidades web detectadas incluem headers ausentes, cookies inseguros, etc.
+   - Active Scan permite detecção de SQLi, XSS e outras vulnerabilidades de injeção""")
+    
+    # 5. Brute Force
+    if hydra:
+        if hydra.get('vulnerable'):
+            discoveries.append(f"""5. **TESTE DE FORÇA BRUTA**
+   - ⚠️ Hydra detectou credenciais fracas na aplicação
+   - A aplicação é vulnerável a ataques de força bruta
+   - Recomendação: Implementar rate limiting e políticas de senha fortes""")
+        else:
+            discoveries.append(f"""5. **TESTE DE FORÇA BRUTA**
+   - Hydra não conseguiu encontrar credenciais por força bruta
+   - Pode indicar proteção adequada ou necessidade de ajuste no teste""")
+    
+    for discovery in discoveries:
+        report.add(discovery)
+        report.add()
     
     report.add_header("Eficácia do Pipeline", 3)
-    report.add("""
-**PONTOS FORTES:**
-- ✅ Detecção automatizada de milhares de vulnerabilidades
-- ✅ Execução totalmente integrada ao CI/CD (Cloud Build)
-- ✅ Múltiplas camadas de análise (Container, IaC, SCA, SAST, DAST)
-- ✅ DAST funcional com OWASP ZAP detectando 18 tipos de vulnerabilidades
-- ✅ Relatórios estruturados em JSON para análise
-- ✅ Tempo de execução aceitável (~10-15 minutos)
-
-**PONTOS DE MELHORIA:**
-- ⚠️ Ausência de SAST para código PHP da aplicação
-- ⚠️ Scan ZAP não autenticado (não testa áreas logadas)
-- ⚠️ Dependency-Check (OWASP) desativado por performance
-""")
     
-    report.add_header("Recomendações", 3)
-    report.add("""
-**CURTO PRAZO:**
-1. Implementar scan ZAP autenticado para testar vulnerabilidades em áreas logadas
-2. Adicionar quality gates (falhar build em CVEs críticas)
-3. Configurar alertas de segurança automáticos
-
-**MÉDIO PRAZO:**
-4. Adicionar SAST específico para PHP (PHPStan, Psalm)
-5. Configurar NVD API key para OWASP Dependency-Check
-6. Implementar scan de secrets (TruffleHog, GitLeaks)
-
-**LONGO PRAZO:**
-7. Integrar com plataforma de gestão de vulnerabilidades (DefectDojo, etc.)
-8. Implementar fuzzing automatizado
-9. Integrar com plataforma de gestão de vulnerabilidades
-""")
+    # Pontos fortes dinâmicos
+    strengths = []
+    
+    total_findings = 0
+    if trivy_container:
+        total_findings += len(trivy_container.get('vulnerabilities', []))
+    if semgrep:
+        total_findings += len(semgrep.get('findings', []))
+    if zap and 'alerts' in zap:
+        total_findings += len(zap['alerts'])
+    if zap_active and 'alerts' in zap_active:
+        total_findings += len(zap_active['alerts'])
+    if checkov:
+        total_findings += len(checkov.get('findings', []))
+    
+    strengths.append(f"✅ Detecção automatizada de {total_findings} vulnerabilidades/issues")
+    strengths.append("✅ Execução totalmente integrada ao CI/CD (Cloud Build)")
+    
+    # Contar camadas de análise ativas
+    layers = []
+    if trivy_container:
+        layers.append("Container")
+    if checkov:
+        layers.append("IaC")
+    if trivy_sca:
+        layers.append("SCA")
+    if semgrep:
+        layers.append("SAST")
+    if zap or zap_active:
+        layers.append("DAST")
+    if hydra:
+        layers.append("Brute Force")
+    
+    strengths.append(f"✅ {len(layers)} camadas de análise ({', '.join(layers)})")
+    
+    if zap_active and 'alerts' in zap_active:
+        strengths.append(f"✅ DAST com Active Scan autenticado ({zap_active_alerts} alertas)")
+    elif zap and 'alerts' in zap:
+        strengths.append(f"✅ DAST funcional com {zap_baseline_alerts} tipos de alertas")
+    
+    strengths.append("✅ Relatórios estruturados em JSON para análise automatizada")
+    strengths.append("✅ Pipeline sem hardcode (usa substituições do Cloud Build)")
+    
+    report.add("**PONTOS FORTES:**")
+    for s in strengths:
+        report.add(f"- {s}")
+    report.add()
+    
+    # Pontos de melhoria dinâmicos
+    improvements = []
+    
+    # Verificar se há SAST para código da aplicação (PHP)
+    if not semgrep or len(semgrep.get('findings', [])) == 0:
+        improvements.append("⚠️ Considerar adicionar SAST específico para PHP (PHPStan, Psalm)")
+    
+    # Verificar cobertura
+    if coverage_pct < 70:
+        improvements.append(f"⚠️ Cobertura de {coverage_pct:.1f}% das vulnerabilidades conhecidas - avaliar testes adicionais")
+    
+    # ZAP Active Scan
+    if not zap_active or 'alerts' not in zap_active or len(zap_active.get('alerts', [])) == 0:
+        improvements.append("⚠️ ZAP Active Scan não gerou resultados - verificar configuração")
+    
+    # Hydra
+    if not hydra or (not hydra.get('vulnerable') and 'erro' in hydra.get('result', '').lower()):
+        improvements.append("⚠️ Verificar configuração do Hydra para testes de força bruta")
+    
+    if improvements:
+        report.add("**PONTOS DE MELHORIA:**")
+        for i in improvements:
+            report.add(f"- {i}")
+        report.add()
+    
+    report.add_header("Cobertura de Vulnerabilidades DVWA", 3)
+    report.add(f"**Total de vulnerabilidades conhecidas:** {total_known}")
+    report.add()
+    report.add(f"**Detectadas pelo pipeline:** {len(coverage['detected'])} ({coverage_pct:.1f}%)")
+    report.add()
+    report.add(f"**Não detectadas:** {len(coverage['not_detected'])} ({100-coverage_pct:.1f}%)")
+    report.add()
+    
+    # Análise das não detectadas
+    if coverage['not_detected']:
+        report.add("**Motivos para não detecção:**")
+        motivos_unicos = set()
+        for v in coverage['not_detected']:
+            motivos_unicos.add(v.get('motivo', 'N/A'))
+        for m in motivos_unicos:
+            report.add(f"- {m}")
+        report.add()
+    
+    report.add_header("Recomendações Baseadas nos Resultados", 3)
+    
+    recommendations = []
+    
+    # Recomendações baseadas nos dados
+    if trivy_container and trivy_container.get('eosl'):
+        recommendations.append("🔴 **URGENTE:** Migrar para imagem base com suporte ativo (ex: Debian 11/12, Alpine)")
+    
+    if trivy_container and trivy_container['by_severity'].get('CRITICAL', 0) > 50:
+        recommendations.append("🔴 **URGENTE:** Aplicar patches para CVEs críticas ou reconstruir imagem")
+    
+    if checkov and checkov.get('failed', 0) > 10:
+        recommendations.append("🟠 **ALTA:** Corrigir configurações de segurança do Kubernetes/IaC")
+    
+    if coverage_pct < 80:
+        recommendations.append("🟡 **MÉDIA:** Aumentar cobertura de testes de segurança")
+    
+    recommendations.append("🟢 **CONTÍNUA:** Manter pipeline atualizado com novas regras de segurança")
+    recommendations.append("🟢 **CONTÍNUA:** Integrar resultados com sistema de gestão de vulnerabilidades")
+    
+    for rec in recommendations:
+        report.add(f"- {rec}")
+    report.add()
     
     report.add("---")
     report.add()

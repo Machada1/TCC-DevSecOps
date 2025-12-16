@@ -1,6 +1,6 @@
 # 📊 Análise Completa dos Relatórios de Segurança - Pipeline DevSecOps
 
-**Data:** 16/12/2025 00:24
+**Data:** 16/12/2025 17:34
 
 **Aplicação:** DVWA (Damn Vulnerable Web Application)
 
@@ -13,16 +13,18 @@
 | Ferramenta | Tipo | Findings | Status |
 | --- | --- | --- | --- |
 | Trivy | Container Scan | 1575 | ✅ Executado |
-| Semgrep | SAST | 4 | ✅ Executado |
+| Semgrep | SAST | 5 | ✅ Executado |
 | Trivy FS | SCA | 0 | ✅ Executado |
-| OWASP ZAP | DAST | 18 | ✅ Executado |
+| OWASP ZAP | DAST (Baseline) | 23 | ✅ Executado |
+| OWASP ZAP | DAST (Active Scan) | 0 | ⚠️ Não disponível |
 | Checkov | IaC Scan | 63 | ✅ Executado |
+| Hydra | Brute Force | Seguro | ✅ Executado |
 
-**Total de issues de segurança identificados: 1660**
+**Total de issues de segurança identificados: 1666**
 
 ## 1. 📦 Container Scan - Trivy
 
-**Imagem analisada:** `dvwa-app:4a6c28b`
+**Imagem analisada:** `dvwa-app:a664f22`
 
 **Sistema Operacional:** debian 9.5
 
@@ -96,13 +98,13 @@
 
 ## 2. 🔍 SAST (Static Application Security Testing) - Semgrep
 
-**Total de findings:** 4
+**Total de findings:** 5
 
 ### Distribuição por Severidade
 
 | Severidade | Quantidade |
 | --- | --- |
-| 🔴 ERROR | 0 |
+| 🔴 ERROR | 1 |
 | 🟠 WARNING | 2 |
 | 🟢 INFO | 2 |
 
@@ -126,15 +128,23 @@
   - CWE: CWE-732: Incorrect Permission Assignment for Critical Resource
   - OWASP: A05:2021 - Security Misconfiguration
 
+**📄 hydra.Dockerfile**
+
+- 🔴 **Linha 4:** `missing-user-entrypoint`
+  - CWE: CWE-269: Improper Privilege Management
+  - OWASP: A04:2021 - Insecure Design
+
 ### CWEs Identificados
 
 - **CWE-250: Execution with Unnecessary Privileges**: 2 ocorrência(s)
 - **CWE-732: Incorrect Permission Assignment for Critical Resource**: 2 ocorrência(s)
+- **CWE-269: Improper Privilege Management**: 1 ocorrência(s)
 
 ### Mapeamento OWASP Top 10
 
 - **A05:2021 - Security Misconfiguration**: 4 ocorrência(s)
 - **A06:2017 - Security Misconfiguration**: 4 ocorrência(s)
+- **A04:2021 - Insecure Design**: 1 ocorrência(s)
 
 ## 3. 📦 SCA (Software Composition Analysis) - Trivy FS
 
@@ -146,17 +156,17 @@
 
 ## 4. 🌐 DAST (Dynamic Application Security Testing) - OWASP ZAP
 
-**Alvo:** `http://34.28.0.21`
+**Alvo:** `https://34.9.5.224`
 
-**Total de alertas:** 18
+**Total de alertas:** 23
 
 ### Distribuição por Risco
 
 | Nível de Risco | Quantidade |
 | --- | --- |
-| Medium | 3 |
+| Medium | 6 |
 | Low | 9 |
-| Informational | 6 |
+| Informational | 8 |
 
 ### Alertas Encontrados
 
@@ -165,10 +175,25 @@
 - CWE: CWE-693
 - Descrição: Content Security Policy (CSP) is an added layer of security that helps to detect and mitigate certai...
 
+**🟠 Directory Browsing**
+- Risco: Medium (Medium)
+- CWE: CWE-548
+- Descrição: It is possible to view the directory listing. Directory listing may reveal hidden scripts, include f...
+
+**🟠 HTTP Only Site**
+- Risco: Medium (Medium)
+- CWE: CWE-311
+- Descrição: The site is only served under HTTP and not HTTPS. ...
+
 **🟠 Missing Anti-clickjacking Header**
 - Risco: Medium (Medium)
 - CWE: CWE-1021
 - Descrição: The response does not protect against 'ClickJacking' attacks. It should include either Content-Secur...
+
+**🟠 Relative Path Confusion**
+- Risco: Medium (Medium)
+- CWE: CWE-20
+- Descrição: The web server is configured to serve responses to ambiguous URLs in a manner that is likely to lead...
 
 **🟠 Source Code Disclosure - SQL**
 - Risco: Medium (Medium)
@@ -225,6 +250,11 @@
 - CWE: CWE--1
 - Descrição: The given request has been identified as an authentication request. The 'Other Info' field contains ...
 
+**🔵 Cookie Slack Detector**
+- Risco: Informational (Low)
+- CWE: CWE-205
+- Descrição: Repeated GET requests: drop a different cookie each time, followed by normal request with all cookie...
+
 **🔵 Information Disclosure - Suspicious Comments**
 - Risco: Informational (Medium)
 - CWE: CWE-615
@@ -250,10 +280,18 @@
 - CWE: CWE-524
 - Descrição: The response contents are storable by caching components such as proxy servers, but will not be retr...
 
+**🔵 User Agent Fuzzer**
+- Risco: Informational (Medium)
+- CWE: CWE-0
+- Descrição: Check for differences in response based on fuzzed User Agent (eg. mobile sites, access as a Search E...
+
 ### CWEs Detectados pelo DAST
 
 - **CWE-693**: 4 ocorrência(s)
+- **CWE-548**: 1 ocorrência(s)
+- **CWE-311**: 1 ocorrência(s)
 - **CWE-1021**: 1 ocorrência(s)
+- **CWE-20**: 1 ocorrência(s)
 - **CWE-540**: 1 ocorrência(s)
 - **CWE-1004**: 1 ocorrência(s)
 - **CWE-1275**: 1 ocorrência(s)
@@ -261,8 +299,19 @@
 - **CWE-497**: 2 ocorrência(s)
 - **CWE-1295**: 1 ocorrência(s)
 - **CWE--1**: 2 ocorrência(s)
+- **CWE-205**: 1 ocorrência(s)
 - **CWE-615**: 1 ocorrência(s)
 - **CWE-524**: 3 ocorrência(s)
+- **CWE-0**: 1 ocorrência(s)
+
+## 4.1 🔓 DAST Active Scan (Autenticado) - OWASP ZAP
+
+⚠️ Relatório do OWASP ZAP Active Scan não disponível.
+
+**Possíveis causas:**
+1. O scan autenticado não foi executado
+2. Erro na autenticação com DVWA
+3. O relatório zap-auth-active-report.json não foi gerado
 
 ## 5. 🏗️ IaC Scan - Checkov
 
@@ -298,13 +347,25 @@
 | CKV_GCP_62 | google_storage_bucket.reports_ | storage.tf | None |
 
 
-## 6. 🎯 Comparação com Vulnerabilidades Conhecidas do DVWA
+## 6. 🔐 Teste de Força Bruta - Hydra
+
+**Ferramenta:** Hydra
+
+**Tipo de teste:** Brute Force
+
+### ✅ Nenhuma Vulnerabilidade de Força Bruta Detectada
+
+**Resultado:** Nenhuma credencial encontrada ou erro na execução
+
+O teste de força bruta não encontrou credenciais fracas ou o teste não conseguiu ser executado com sucesso.
+
+## 7. 🎯 Comparação com Vulnerabilidades Conhecidas do DVWA
 
 **Vulnerabilidades conhecidas do DVWA:** 17
 
-**Detectadas pelo pipeline:** 9 (52.9%)
+**Detectadas pelo pipeline:** 11 (64.7%)
 
-**Não detectadas:** 8 (47.1%)
+**Não detectadas:** 6 (35.3%)
 
 ### ✅ Vulnerabilidades Detectadas
 
@@ -316,8 +377,10 @@
 | CSRF | web_application | CWE-352 | Trivy (Container) | Cross-Site Request Forgery... |
 | Weak Session IDs | web_application | CWE-330 | Trivy (Container) | IDs de sessão previsíveis... |
 | Open HTTP Redirect | web_application | CWE-601 | Trivy (Container) | Redirecionamento aberto para sites malic... |
-| JavaScript Attacks | web_application | CWE-749 | OWASP ZAP | Exposição de lógica sensível no cliente... |
-| Content Security Policy Bypass | web_application | CWE-693 | OWASP ZAP | Ausência ou bypass de CSP... |
+| JavaScript Attacks | web_application | CWE-749 | OWASP ZAP (Baseline) | Exposição de lógica sensível no cliente... |
+| Content Security Policy Bypass | web_application | CWE-693 | OWASP ZAP (Baseline) | Ausência ou bypass de CSP... |
+| Outdated OS | infrastructure | CWE-1104 | Trivy (Container - EOSL) | Sistema operacional desatualizado (Debia... |
+| Outdated Packages | infrastructure | CWE-1104 | Trivy (Container - EOSL) | Pacotes com vulnerabilidades conhecidas... |
 | Exposed MySQL | infrastructure | CWE-284 | Trivy (Container) | MySQL com credenciais fracas... |
 
 
@@ -325,89 +388,93 @@
 
 | Vulnerabilidade | Categoria | CWE | OWASP | Motivo | Sugestão |
 | --- | --- | --- | --- | --- | --- |
-| File Inclusion (LFI/RFI) | web_application | CWE-98 | A03:2021 - Injection | Requer autenticação e/ou ataque ativo | Adicionar ZAP autenticado/active scan na pipeline |
-| File Upload | web_application | CWE-434 | A04:2021 - Insecure Design | Requer autenticação e/ou ataque ativo | Adicionar ZAP autenticado/active scan na pipeline |
-| Brute Force | web_application | CWE-307 | A07:2021 - Identification and  | Requer autenticação e/ou ataque ativo | Adicionar ZAP autenticado/active scan na pipeline |
-| Insecure CAPTCHA | web_application | CWE-804 | A07:2021 - Identification and  | Requer interação humana ou automação avançada | Fora do escopo do pipeline automatizado |
-| Authorisation Bypass | web_application | CWE-639 | A01:2021 - Broken Access Contr | Requer autenticação e/ou ataque ativo | Adicionar ZAP autenticado/active scan na pipeline |
-| Outdated OS | infrastructure | CWE-1104 | N/A | Detectada por Trivy | - |
-| Outdated Packages | infrastructure | CWE-1104 | N/A | Detectada por Trivy | - |
-| Default Credentials | infrastructure | CWE-798 | N/A | Requer brute force/login automatizado | Adicionar brute force (ex: hydra) na pipeline |
+| File Inclusion (LFI/RFI) | web_application | CWE-98 | A03:2021 - Injection | Requer autenticação e/ou ataque ativo. | Adicionar ZAP autenticado/active scan na pipeline. |
+| File Upload | web_application | CWE-434 | A04:2021 - Insecure Design | Requer autenticação e/ou ataque ativo. | Adicionar ZAP autenticado/active scan na pipeline. |
+| Brute Force | web_application | CWE-307 | A07:2021 - Identification and  | Requer brute force/login automatizado. | Adicionar brute force (ex: hydra) na pipeline. |
+| Insecure CAPTCHA | web_application | CWE-804 | A07:2021 - Identification and  | Requer interação humana ou automação avançada. | Fora do escopo do pipeline automatizado. |
+| Authorisation Bypass | web_application | CWE-639 | A01:2021 - Broken Access Contr | Requer autenticação e/ou ataque ativo. | Adicionar ZAP autenticado/active scan na pipeline. |
+| Default Credentials | infrastructure | CWE-798 | N/A | Requer brute force/login automatizado. | Adicionar brute force (ex: hydra) na pipeline. |
 
 
 ### Resumo da Cobertura
 
-Cobertura do pipeline: **9/17** vulnerabilidades conhecidas detectadas (**52.9%**)
+Cobertura do pipeline: **11/17** vulnerabilidades conhecidas detectadas (**64.7%**)
 
 Principais motivos para não detecção:
-- Detectada por Trivy
-- Requer autenticação e/ou ataque ativo
-- Requer brute force/login automatizado
-- Requer interação humana ou automação avançada
+- Requer interação humana ou automação avançada.
+- Requer autenticação e/ou ataque ativo.
+- Requer brute force/login automatizado.
 
 Sugestões para aumentar a cobertura:
-- Fora do escopo do pipeline automatizado
-- Adicionar ZAP autenticado/active scan na pipeline
-- Adicionar brute force (ex: hydra) na pipeline
+- Adicionar brute force (ex: hydra) na pipeline.
+- Fora do escopo do pipeline automatizado.
+- Adicionar ZAP autenticado/active scan na pipeline.
 
-## 7. 📝 Conclusões e Recomendações para o TCC
+## 8. 📝 Conclusões e Recomendações para o TCC
 
 ### Principais Descobertas
 
-
 1. **RISCO CRÍTICO - SISTEMA OPERACIONAL**
-   - A imagem base do DVWA utiliza Debian 9.5, que está em End of Support Life (EOSL) desde 2020
-   - Isso resulta em centenas de vulnerabilidades CRÍTICAS e de ALTA severidade sem patches disponíveis
+   - A imagem base utiliza debian 9.5, que está em End of Support Life (EOSL)
+   - Foram encontradas 254 vulnerabilidades CRÍTICAS e 551 de ALTA severidade
+   - Recomendação: Migrar para imagem base com suporte ativo
 
-2. **CONFIGURAÇÃO KUBERNETES INSEGURA**
-   - Os manifestos de deployment não implementam SecurityContext adequado
-   - `runAsNonRoot` não configurado (CWE-250)
-   - `allowPrivilegeEscalation` não bloqueado (CWE-732)
-   - Permite potencial escalação de privilégios
+2. **CONFIGURAÇÃO KUBERNETES/IAC**
+   - Checkov identificou 63 problemas de configuração de segurança
+   - Incluem: SecurityContext, RBAC, Network Policies, entre outros
+   - Recomendação: Revisar e aplicar as correções sugeridas pelo Checkov
 
-3. **CÓDIGO FONTE LIMPO**
-   - Nenhuma vulnerabilidade foi encontrada nas dependências do projeto Terraform/CloudBuild
-   - Indica boas práticas de composição de software
+3. **ANÁLISE ESTÁTICA (SAST)**
+   - Semgrep identificou 5 potenciais problemas no código
+   - CWEs encontrados: CWE-250: Execution with Unnecessary Privileges, CWE-732: Incorrect Permission Assignment for Critical Resource, CWE-269: Improper Privilege Management
+   - Recomendação: Revisar e corrigir os findings de alta prioridade
 
-4. **DAST OPERACIONAL**
-   - OWASP ZAP executando com sucesso, detectando vulnerabilidades web
-   - Headers de segurança ausentes identificados (CSP, X-Content-Type-Options)
-   - Cookies sem flags de segurança detectados
+4. **ANÁLISE DINÂMICA (DAST)**
+   - OWASP ZAP identificou 23 alertas totais (Baseline Scan: 23 alertas)
+   - Vulnerabilidades web detectadas incluem headers ausentes, cookies inseguros, etc.
+   - Active Scan permite detecção de SQLi, XSS e outras vulnerabilidades de injeção
+
+5. **TESTE DE FORÇA BRUTA**
+   - Hydra não conseguiu encontrar credenciais por força bruta
+   - Pode indicar proteção adequada ou necessidade de ajuste no teste
 
 ### Eficácia do Pipeline
 
-
 **PONTOS FORTES:**
-- ✅ Detecção automatizada de milhares de vulnerabilidades
+- ✅ Detecção automatizada de 1666 vulnerabilidades/issues
 - ✅ Execução totalmente integrada ao CI/CD (Cloud Build)
-- ✅ Múltiplas camadas de análise (Container, IaC, SCA, SAST, DAST)
-- ✅ DAST funcional com OWASP ZAP detectando 18 tipos de vulnerabilidades
-- ✅ Relatórios estruturados em JSON para análise
-- ✅ Tempo de execução aceitável (~10-15 minutos)
+- ✅ 6 camadas de análise (Container, IaC, SCA, SAST, DAST, Brute Force)
+- ✅ DAST funcional com 23 tipos de alertas
+- ✅ Relatórios estruturados em JSON para análise automatizada
+- ✅ Pipeline sem hardcode (usa substituições do Cloud Build)
 
 **PONTOS DE MELHORIA:**
-- ⚠️ Ausência de SAST para código PHP da aplicação
-- ⚠️ Scan ZAP não autenticado (não testa áreas logadas)
-- ⚠️ Dependency-Check (OWASP) desativado por performance
+- ⚠️ Cobertura de 64.7% das vulnerabilidades conhecidas - avaliar testes adicionais
+- ⚠️ ZAP Active Scan não gerou resultados - verificar configuração
+- ⚠️ Verificar configuração do Hydra para testes de força bruta
 
-### Recomendações
+### Cobertura de Vulnerabilidades DVWA
 
+**Total de vulnerabilidades conhecidas:** 17
 
-**CURTO PRAZO:**
-1. Implementar scan ZAP autenticado para testar vulnerabilidades em áreas logadas
-2. Adicionar quality gates (falhar build em CVEs críticas)
-3. Configurar alertas de segurança automáticos
+**Detectadas pelo pipeline:** 11 (64.7%)
 
-**MÉDIO PRAZO:**
-4. Adicionar SAST específico para PHP (PHPStan, Psalm)
-5. Configurar NVD API key para OWASP Dependency-Check
-6. Implementar scan de secrets (TruffleHog, GitLeaks)
+**Não detectadas:** 6 (35.3%)
 
-**LONGO PRAZO:**
-7. Integrar com plataforma de gestão de vulnerabilidades (DefectDojo, etc.)
-8. Implementar fuzzing automatizado
-9. Integrar com plataforma de gestão de vulnerabilidades
+**Motivos para não detecção:**
+- Requer interação humana ou automação avançada.
+- Requer autenticação e/ou ataque ativo.
+- Requer brute force/login automatizado.
+
+### Recomendações Baseadas nos Resultados
+
+- 🔴 **URGENTE:** Migrar para imagem base com suporte ativo (ex: Debian 11/12, Alpine)
+- 🔴 **URGENTE:** Aplicar patches para CVEs críticas ou reconstruir imagem
+- 🟠 **ALTA:** Corrigir configurações de segurança do Kubernetes/IaC
+- 🟡 **MÉDIA:** Aumentar cobertura de testes de segurança
+- 🟢 **CONTÍNUA:** Manter pipeline atualizado com novas regras de segurança
+- 🟢 **CONTÍNUA:** Integrar resultados com sistema de gestão de vulnerabilidades
 
 ---
 
-*Relatório gerado automaticamente em 16/12/2025 às 00:24:00*
+*Relatório gerado automaticamente em 16/12/2025 às 17:34:55*
