@@ -234,25 +234,25 @@ steps:
     args:
       - -c
       - |
-        EXTERNAL_IP=$(cat /workspace/external_ip.txt)
-        if [ "$EXTERNAL_IP" = "UNAVAILABLE" ]; then
+        EXTERNAL_IP=$$(cat /workspace/external_ip.txt)
+        if [ "$$EXTERNAL_IP" = "UNAVAILABLE" ]; then
           echo "ERRO: IP externo não disponível, pulando ZAP autenticado"
           echo '{"error": "IP externo não disponível"}' > /workspace/reports/zap-auth-report.json
           exit 0
         fi
-        TARGET_URL="http://$EXTERNAL_IP/login.php"
+        TARGET_URL="http://$$EXTERNAL_IP/login.php"
         # Inicia ZAP em modo daemon
         zap.sh -daemon -port 8090 -host 0.0.0.0 -config api.disablekey=true &
         sleep 30
         # Login automatizado (ajuste conforme necessário)
-        curl -c /workspace/cookie.txt -d "username=${_DVWA_USER}&password=${_DVWA_PASS}&Login=Login" "$TARGET_URL"
+        curl -c /workspace/cookie.txt -d "username=${_DVWA_USER}&password=${_DVWA_PASS}&Login=Login" "$$TARGET_URL"
         # Importa cookie para ZAP
-        zap-cli --zap-url http://localhost:8090 --api-key '' load-cookies /workspace/cookie.txt http://$EXTERNAL_IP
+        zap-cli --zap-url http://localhost:8090 --api-key '' load-cookies /workspace/cookie.txt http://$$EXTERNAL_IP
         # Ativa contexto (opcional)
         # zap-cli context new dvwa
-        # zap-cli context include dvwa http://$EXTERNAL_IP/.*
+        # zap-cli context include dvwa http://$$EXTERNAL_IP/.*
         # Active scan autenticado
-        zap-cli --zap-url http://localhost:8090 --api-key '' active-scan http://$EXTERNAL_IP
+        zap-cli --zap-url http://localhost:8090 --api-key '' active-scan http://$$EXTERNAL_IP
         # Exporta relatório
         zap-cli --zap-url http://localhost:8090 --api-key '' report -o /workspace/reports/zap-auth-active-report.html -f html
         zap-cli --zap-url http://localhost:8090 --api-key '' report -o /workspace/reports/zap-auth-active-report.json -f json
@@ -267,8 +267,8 @@ steps:
     args:
       - -c
       - |
-        EXTERNAL_IP=$(cat /workspace/external_ip.txt)
-        if [ "$EXTERNAL_IP" = "UNAVAILABLE" ]; then
+        EXTERNAL_IP=$$(cat /workspace/external_ip.txt)
+        if [ "$$EXTERNAL_IP" = "UNAVAILABLE" ]; then
           echo "ERRO: IP externo não disponível, pulando brute force"
           exit 0
         fi
@@ -280,7 +280,7 @@ steps:
         1234
         EOF
         # Exemplo de http-post-form (ajuste path, params e resposta de erro conforme seu formulário)
-        hydra -L /workspace/wordlist.txt -P /workspace/wordlist.txt $EXTERNAL_IP http-post-form "/login.php:username=^USER^&password=^PASS^&Login=Login:Login failed" -f -w 10
+        hydra -L /workspace/wordlist.txt -P /workspace/wordlist.txt $$EXTERNAL_IP http-post-form "/login.php:username=^USER^&password=^PASS^&Login=Login failed" -f -w 10
         # Copie resultados para reports
         cp hydra.log /workspace/reports/hydra-bruteforce.log || true
     waitFor:
