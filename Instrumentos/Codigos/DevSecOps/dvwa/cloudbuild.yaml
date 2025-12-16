@@ -11,6 +11,8 @@ substitutions:
   _REPORT_BUCKET: "gs://devsecops-reports-dvwa"
   _LOGS_BUCKET: "gs://infra-sd-host-cloudbuild-logs"
   _SOURCE_IMAGE: "vulnerables/web-dvwa:latest"
+  _DVWA_USER: "admin"
+  _DVWA_PASS: "password"
 
 steps:
   # 0 Criar diretório de relatórios
@@ -225,24 +227,64 @@ steps:
     waitFor:
       - 'get-external-ip'
 
+# 9.2 ZAP autenticado + active scan
+  - name: 'owasp/zap2docker-stable'
+    id: 'zap-auth-active-scan'
+    entrypoint: 'sh'
+    args:
+      - -c
+      - |
+        EXTERNAL_IP=$(cat /workspace/external_ip.txt)
+        if [ "$EXTERNAL_IP" = "UNAVAILABLE" ]; then
+          echo "ERRO: IP externo não disponível, pulando ZAP autenticado"
+          echo '{"error": "IP externo não disponível"}' > /workspace/reports/zap-auth-report.json
+          exit 0
+        fi
+        TARGET_URL="http://$EXTERNAL_IP/login.php"
+        # Inicia ZAP em modo daemon
+        zap.sh -daemon -port 8090 -host 0.0.0.0 -config api.disablekey=true &
+        sleep 30
+        # Login automatizado (ajuste conforme necessário)
+        curl -c /workspace/cookie.txt -d "username=${_DVWA_USER}&password=${_DVWA_PASS}&Login=Login" "$TARGET_URL"
+        # Importa cookie para ZAP
+        zap-cli --zap-url http://localhost:8090 --api-key '' load-cookies /workspace/cookie.txt http://$EXTERNAL_IP
+        # Ativa contexto (opcional)
+        # zap-cli context new dvwa
+        # zap-cli context include dvwa http://$EXTERNAL_IP/.*
+        # Active scan autenticado
+        zap-cli --zap-url http://localhost:8090 --api-key '' active-scan http://$EXTERNAL_IP
+        # Exporta relatório
+        zap-cli --zap-url http://localhost:8090 --api-key '' report -o /workspace/reports/zap-auth-active-report.html -f html
+        zap-cli --zap-url http://localhost:8090 --api-key '' report -o /workspace/reports/zap-auth-active-report.json -f json
+        echo "ZAP autenticado + active scan concluído"
+    waitFor:
+      - 'get-external-ip'
+
 # 9.1 Teste de BruteForce com o Hydra
   - name: 'docker://vanhauser-thc/thc-hydra'
+    id: 'hydra-bruteforce'
     entrypoint: bash
     args:
       - -c
       - |
-        TARGET_HOST=$$EXTERNAL_IP
-        # crie um pequeno wordlist temporário (ou monte um maior do repo/secret)
+        EXTERNAL_IP=$(cat /workspace/external_ip.txt)
+        if [ "$EXTERNAL_IP" = "UNAVAILABLE" ]; then
+          echo "ERRO: IP externo não disponível, pulando brute force"
+          exit 0
+        fi
+        # Cria um pequeno wordlist temporário (ou monte um maior do repo/secret)
         cat > /workspace/wordlist.txt <<'EOF'
         password
         admin
         123456
         1234
         EOF
-        # exemplo de http-post-form (ajuste path, params e resposta de erro conforme seu formulário)
-        hydra -L /workspace/wordlist.txt -P /workspace/wordlist.txt $$TARGET_HOST http-post-form "/login.php:username=^USER^&password=^PASS^&Login=Login:Bad login" -f -w 10
-        # copie resultados para reports
-        cp hydra.log /workspace/reports/hydra-bruteforce.log || true      
+        # Exemplo de http-post-form (ajuste path, params e resposta de erro conforme seu formulário)
+        hydra -L /workspace/wordlist.txt -P /workspace/wordlist.txt $EXTERNAL_IP http-post-form "/login.php:username=^USER^&password=^PASS^&Login=Login:Login failed" -f -w 10
+        # Copie resultados para reports
+        cp hydra.log /workspace/reports/hydra-bruteforce.log || true
+    waitFor:
+      - 'get-external-ip'
 
   # 10 Upload dos relatórios de segurança para bucket GCS
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
