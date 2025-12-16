@@ -128,7 +128,7 @@ steps:
     waitFor:
       - 'push'
 
-  # 6.1 Deploy do MySQL no GKE
+  # 7 Deploy do MySQL no GKE
   - name: 'gcr.io/cloud-builders/kubectl'
     id: 'deploy-mysql'
     entrypoint: 'bash'
@@ -143,7 +143,7 @@ steps:
       - 'trivy'
 
 
-  # 7 Deploy no GKE
+  # 8 Deploy do DVWA no GKE
   - name: 'gcr.io/cloud-builders/kubectl'
     id: 'deploy'
     entrypoint: 'bash'
@@ -160,7 +160,7 @@ steps:
     waitFor:
       - 'deploy-mysql'
 
-  # 8 Obter IP externo do serviço para DAST
+  # 9 Obter IP externo do serviço para DAST
   - name: 'gcr.io/cloud-builders/kubectl'
     id: 'get-external-ip'
     entrypoint: 'bash'
@@ -186,7 +186,7 @@ steps:
     waitFor:
       - 'deploy'
 
-  # 9 DAST com OWASP ZAP (testes dinâmicos de segurança)
+  # 10 DAST com OWASP ZAP (testes dinâmicos de segurança)
   # NOTA: Usa docker para montar /workspace/reports como /zap/wrk
   - name: 'gcr.io/cloud-builders/docker'
     id: 'zap-scan'
@@ -227,7 +227,7 @@ steps:
     waitFor:
       - 'get-external-ip'
 
-# 9.1 ZAP autenticado + active scan
+  # 11 ZAP autenticado + active scan
   - name: 'ghcr.io/zaproxy/zaproxy:stable'
     id: 'zap-auth-active-scan'
     entrypoint: 'sh'
@@ -260,8 +260,8 @@ steps:
     waitFor:
       - 'get-external-ip'
 
-# 9.2 Teste de BruteForce com o Hydra
-  - name: 'vanhauser/thc-hydra'
+  # 12 Teste de Brute Force com Hydra
+  - name: 'frapsoft/hydra'
     id: 'hydra-bruteforce'
     entrypoint: bash
     args:
@@ -286,7 +286,7 @@ steps:
     waitFor:
       - 'get-external-ip'
 
-  # 10 Upload dos relatórios de segurança para bucket GCS
+  # 13 Upload dos relatórios de segurança para bucket GCS
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     id: 'upload-reports'
     entrypoint: 'bash'
@@ -311,7 +311,7 @@ steps:
       - 'checkov'
       - 'trivy'
 
-  # 11 Exibir IP externo do DVWA
+  # 14 Exibir IP externo do DVWA
   - name: 'gcr.io/cloud-builders/kubectl'
     id: 'get-service-ip'
     entrypoint: 'bash'
