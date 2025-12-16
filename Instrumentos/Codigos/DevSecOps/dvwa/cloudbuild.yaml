@@ -296,7 +296,7 @@ steps:
         docker run --rm \
           -v /workspace:/workspace \
           sublimesec/hydra \
-          -L /workspace/wordlist.txt \
+          hydra -L /workspace/wordlist.txt \
           -P /workspace/wordlist.txt \
           -o /workspace/reports/hydra-bruteforce.txt \
           $$EXTERNAL_IP \
