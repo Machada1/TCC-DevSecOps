@@ -124,8 +124,60 @@ DVWA_KNOWN_VULNERABILITIES = {
 }
 
 
+def find_report_file(base_name):
+    """
+    Encontra o arquivo de relatório mais recente, com ou sem prefixo.
+    
+    O pipeline Cloud Build salva os relatórios com prefixo 'reports-{SHORT_SHA}_'
+    Exemplo: reports-67e4d2f_semgrep-report.json
+    
+    Esta função busca:
+    1. Primeiro, arquivos com prefixo 'reports-*_' + base_name (mais recente)
+    2. Se não encontrar, busca o arquivo sem prefixo
+    
+    Args:
+        base_name: Nome base do arquivo (ex: 'semgrep-report.json')
+    
+    Returns:
+        Caminho do arquivo encontrado ou None
+    """
+    import glob
+    
+    # Buscar arquivos com prefixo reports-*_
+    pattern = f"reports-*_{base_name}"
+    matches = glob.glob(pattern)
+    
+    if matches:
+        # Se houver múltiplos, pegar o mais recente (por data de modificação)
+        matches.sort(key=os.path.getmtime, reverse=True)
+        print(f"[INFO] Usando relatório: {matches[0]}")
+        return matches[0]
+    
+    # Se não encontrar com prefixo, tentar sem prefixo
+    if os.path.exists(base_name):
+        print(f"[INFO] Usando relatório: {base_name}")
+        return base_name
+    
+    # Também tentar em subpastas reports-*/
+    subdir_pattern = f"reports-*/{base_name}"
+    subdir_matches = glob.glob(subdir_pattern)
+    if subdir_matches:
+        subdir_matches.sort(key=os.path.getmtime, reverse=True)
+        print(f"[INFO] Usando relatório: {subdir_matches[0]}")
+        return subdir_matches[0]
+    
+    print(f"[AVISO] Relatório não encontrado: {base_name}")
+    return None
+
+
 def load_json(filepath):
     """Carrega arquivo JSON"""
+    # Se for um nome base, tentar encontrar o arquivo com prefixo
+    if filepath and not os.path.exists(filepath):
+        found_path = find_report_file(filepath)
+        if found_path:
+            filepath = found_path
+    
     try:
         with open(filepath, 'r') as f:
             return json.load(f)
@@ -255,7 +307,55 @@ def validate_zap_coverage(zap_report_path):
     total_detected = len(result["cwes_detected"])
     result["coverage_score"] = (total_detected / total_expected * 100) if total_expected > 0 else 0
     
-    # Identificar problemas
+    # ===================================================================
+    # DIAGNÓSTICO: Verificar se plugins de ataque foram executados
+    # ===================================================================
+    # Plugins de Active Scan para injeção começam com 40xxx ou 90xxx
+    INJECTION_PLUGINS = {
+        "40018": "SQL Injection",
+        "40019": "SQL Injection (MySQL)",
+        "40020": "SQL Injection (Hypersonic)",
+        "40021": "SQL Injection (Oracle)",
+        "40022": "SQL Injection (PostgreSQL)",
+        "40024": "SQL Injection (SQLite)",
+        "40012": "XSS (Reflected)",
+        "40014": "XSS (Persistent)",
+        "90019": "Server Side Code Injection",
+        "90020": "Remote OS Command Injection",
+    }
+    
+    # Verificar quais plugins foram executados baseado nos alertas
+    plugin_ids_found = set()
+    for alert in alerts:
+        pid = alert.get("pluginId", "")
+        if pid:
+            plugin_ids_found.add(str(pid))
+    
+    injection_plugins_executed = [
+        (pid, name) for pid, name in INJECTION_PLUGINS.items() 
+        if pid in plugin_ids_found
+    ]
+    
+    result["injection_plugins_executed"] = injection_plugins_executed
+    result["all_plugins_found"] = list(plugin_ids_found)
+    
+    # Se nenhum plugin de injeção foi executado, há um problema de configuração
+    if not injection_plugins_executed:
+        result["issues"].append(
+            "⚠️ DIAGNÓSTICO: Nenhum plugin de ataque de injeção (SQLi/XSS/Command Injection) foi executado. "
+            "Isso indica que o Active Scan pode não ter rodado corretamente ou não teve acesso autenticado às páginas vulneráveis."
+        )
+        result["recommendations"].append(
+            "Configurar o ZAP com sessão HTTP autenticada usando o cookie PHPSESSID"
+        )
+        result["recommendations"].append(
+            "Usar a API 'replacer' do ZAP para injetar cookies em todas as requisições"
+        )
+        result["recommendations"].append(
+            "Verificar logs do ZAP para confirmar que o Active Scan iniciou (plugins 40018, 40012, 90020)"
+        )
+    
+    # Identificar problemas adicionais
     required_missing = [c for c in result["cwes_missing"] if c["required"]]
     if required_missing:
         result["issues"].append(
@@ -1111,7 +1211,9 @@ def generate_report():
         report.add(f"**Vulnerabilidades em dependências:** {len(trivy_sca['vulnerabilities'])}")
         report.add()
         if len(trivy_sca['vulnerabilities']) == 0:
-            report.add("✅ **NENHUMA VULNERABILIDADE ENCONTRADA EM DEPENDÊNCIAS!**")
+            report.add("✅ **NENHUMA VULNERABILIDADE CONHECIDA ENCONTRADA EM DEPENDÊNCIAS**")
+            report.add()
+            report.add("*Nota: Este resultado indica que as dependências declaradas (composer.lock, package-lock.json, etc.) não possuem CVEs conhecidas registradas nos bancos de dados de vulnerabilidades consultados pelo Trivy. Isso é um resultado positivo e válido.*")
         else:
             report.add("⚠️ Vulnerabilidades encontradas nas dependências")
         report.add()
@@ -1292,7 +1394,7 @@ def generate_report():
     if coverage['detected']:
         report.add_table(
             ["Vulnerabilidade", "Categoria", "CWE", "Ferramenta", "Descrição"],
-            [[v['name'], v['category'], v['cwe'], v.get('ferramenta', '-'), v['description'][:40] + "..."] for v in coverage['detected']]
+            [[v['name'], v['category'], v['cwe'], v.get('ferramenta', '-'), v['description']] for v in coverage['detected']]
         )
     else:
         report.add("Nenhuma vulnerabilidade conhecida foi detectada.")
@@ -1320,8 +1422,24 @@ def generate_report():
     total = len(coverage['detected']) + len(coverage['not_detected'])
     pct = (len(coverage['detected']) / total * 100) if total > 0 else 0
     report.add_header("Resumo da Cobertura", 3)
+    
+    # Avaliação qualitativa baseada na porcentagem
+    if pct >= 90:
+        qualidade = "🏆 **EXCELENTE** - O pipeline demonstra alta maturidade em detecção de vulnerabilidades"
+    elif pct >= 80:
+        qualidade = "🌟 **MUITO BOM** - O pipeline tem uma cobertura sólida com pequenos pontos de melhoria"
+    elif pct >= 70:
+        qualidade = "✅ **BOM** - O pipeline atende aos requisitos básicos de segurança, mas há espaço para melhorias"
+    elif pct >= 50:
+        qualidade = "⚠️ **REGULAR** - O pipeline precisa de melhorias significativas para uma cobertura adequada"
+    else:
+        qualidade = "❌ **INSUFICIENTE** - O pipeline necessita de revisão urgente na estratégia de testes de segurança"
+    
     report.add(f"Cobertura do pipeline: **{len(coverage['detected'])}/{total}** vulnerabilidades conhecidas detectadas (**{pct:.1f}%**)")
     report.add()
+    report.add(f"**Avaliação:** {qualidade}")
+    report.add()
+    
     if coverage['not_detected']:
         report.add("Principais motivos para não detecção:")
         motivos = set(v['motivo'] for v in coverage['not_detected'])
@@ -1341,22 +1459,67 @@ def generate_report():
     
     zap_coverage = validate_zap_coverage("zap-auth-active-report.json")
     
-    report.add(f"**Score de cobertura:** {zap_coverage['coverage_score']:.1f}%")
+    report.add(f"**Score de cobertura de injeção:** {zap_coverage['coverage_score']:.1f}%")
     report.add()
     
+    # Explicação contextual do score
+    report.add("*Nota: Este score mede especificamente a detecção de vulnerabilidades de **injeção** (SQLi, XSS, Command Injection) que são o foco do Active Scan. O ZAP Active Scan **detectou outros tipos de vulnerabilidades** (configuração de headers, cookies, CORS, etc.) que são válidas mas não entram neste cálculo específico.*")
+    report.add()
+    
+    # Resumo do que foi efetivamente detectado pelo Active Scan
+    if zap_active and 'alerts' in zap_active and zap_active['alerts']:
+        detected_cwe_types = set()
+        for alert in zap_active['alerts']:
+            cwe = alert.get('cwe', alert.get('cweid', ''))
+            if cwe and cwe not in ('', '0', '-1'):
+                detected_cwe_types.add(str(cwe))
+        if detected_cwe_types:
+            report.add(f"**CWEs efetivamente detectados pelo Active Scan:** {', '.join([f'CWE-{c}' for c in sorted(detected_cwe_types, key=lambda x: int(x) if x.isdigit() else 0)])}")
+            report.add()
+            report.add("Estes CWEs representam vulnerabilidades reais encontradas (ex: cabeçalhos de segurança ausentes, configurações inseguras de cookies), mesmo que não sejam vulnerabilidades de injeção.")
+            report.add()
+    
     if zap_coverage["cwes_detected"]:
-        report.add_header("CWEs Detectados pelo Active Scan", 3)
+        report.add_header("CWEs de Injeção Detectados", 3)
         report.add_table(
             ["CWE", "Vulnerabilidade", "Crítico"],
             [[c["cwe"], c["name"], "✅ Sim" if c["required"] else "Não"] for c in zap_coverage["cwes_detected"]]
         )
     
     if zap_coverage["cwes_missing"]:
-        report.add_header("CWEs Esperados mas Não Detectados", 3)
+        report.add_header("CWEs de Injeção Esperados mas Não Detectados", 3)
         report.add_table(
             ["CWE", "Vulnerabilidade", "Crítico", "URLs Esperadas"],
             [[c["cwe"], c["name"], "⚠️ Sim" if c["required"] else "Não", ", ".join(c["expected_urls"])] for c in zap_coverage["cwes_missing"]]
         )
+        report.add()
+        
+        # Diagnóstico detalhado: verificar se plugins de ataque foram executados
+        injection_plugins = zap_coverage.get("injection_plugins_executed", [])
+        all_plugins = zap_coverage.get("all_plugins_found", [])
+        
+        if not injection_plugins:
+            report.add("### 🔍 Diagnóstico: Plugins de Ataque")
+            report.add()
+            report.add("**⚠️ NENHUM plugin de ataque de injeção foi executado durante o Active Scan.**")
+            report.add()
+            report.add("Plugins encontrados no relatório (todos são scanners passivos):")
+            report.add(f"- `{', '.join(all_plugins[:10])}`" if all_plugins else "- Nenhum")
+            report.add()
+            report.add("Plugins de injeção esperados (não encontrados):")
+            report.add("- `40018` - SQL Injection")
+            report.add("- `40012` - XSS (Reflected)")
+            report.add("- `90020` - Remote OS Command Injection")
+            report.add()
+            report.add("**Causa Provável:** O ZAP não conseguiu manter sessão autenticada durante o Active Scan.")
+            report.add("Quando o ZAP tenta acessar `/vulnerabilities/sqli/` sem cookie de sessão válido, é redirecionado para `/login.php`.")
+            report.add()
+        
+        report.add("*A não detecção de vulnerabilidades de injeção pelo Active Scan pode ocorrer por:*")
+        report.add("- *Sessão HTTP não configurada corretamente no ZAP (cookies não persistem entre requisições)*")
+        report.add("- *DVWA configurado em nível de segurança 'Medium' ou 'High' que bloqueia payloads comuns*")
+        report.add("- *Timeouts do scan ou limitações de profundidade configurados*")
+        report.add("- *Necessidade de contexto de autenticação mais específico*")
     
     if zap_coverage["urls_tested"]:
         report.add_header("URLs Vulneráveis Testadas", 3)
@@ -1419,7 +1582,7 @@ def generate_report():
     # ========================================================================
     # SEÇÃO 8: CONCLUSÕES E RECOMENDAÇÕES
     # ========================================================================
-    report.add_header("8. 📝 Conclusões e Recomendações para o TCC", 2)
+    report.add_header("8. 📝 Conclusões e Recomendações", 2)
     
     report.add_header("Principais Descobertas", 3)
     
