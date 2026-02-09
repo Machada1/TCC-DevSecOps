@@ -291,7 +291,71 @@ A pesquisa em TIPI demonstrou que:
 
 ---
 
-## 9. Considerações Finais
+## 9. Script de Análise Automatizada (`analise.py`)
+
+Um dos principais entregáveis técnicos do projeto foi o desenvolvimento do script `analise.py`, uma ferramenta Python que automatiza toda a análise dos relatórios de segurança.
+
+### 9.1 Motivação
+
+O problema: cada ferramenta gera relatórios em formatos diferentes, com estruturas distintas e sem padronização. Analisar manualmente **1700+ findings** de 6 ferramentas seria inviável e propenso a erros.
+
+### 9.2 Funcionalidades Desenvolvidas
+
+| Funcionalidade | Descrição |
+|----------------|-----------|
+| **Parsing Unificado** | Interpreta JSON de Trivy, Semgrep, Checkov, ZAP e Brute Force |
+| **Normalização de CWEs** | Padroniza identificadores como `CWE-89`, `CWE:89`, `89` |
+| **Base de Conhecimento** | 17 vulnerabilidades conhecidas do DVWA mapeadas |
+| **Escopo de Automação** | 4 vulnerabilidades marcadas como fora do escopo |
+| **Cálculo de Cobertura** | Geral (76.5%) e ajustada (100%) |
+| **Geração de Relatório** | Markdown formatado com tabelas e métricas |
+
+### 9.3 Estrutura do Código
+
+```python
+# Constantes
+DVWA_KNOWN_VULNERABILITIES = {...}      # 17 vulnerabilidades
+OUT_OF_SCOPE_VULNERABILITIES = {...}    # 4 não automatizáveis
+
+# Funções de análise (uma por ferramenta)
+analyze_trivy_container()
+analyze_semgrep()
+analyze_checkov()
+analyze_zap_active()
+...
+
+# Função principal
+compare_with_known_vulnerabilities()    # Compara e calcula cobertura
+
+# Geração de relatório
+class MarkdownReport:                   # Formata saída
+```
+
+### 9.4 Desafios na Implementação
+
+1. **Formatos heterogêneos** - Cada ferramenta usa estrutura JSON diferente
+2. **CWEs inconsistentes** - Semgrep usa `CWE:89`, ZAP usa `89`, Trivy usa `CWE-89`
+3. **Mapeamento de vulnerabilidades** - Algumas ferramentas detectam o mesmo problema com CWEs diferentes
+4. **Detecção de JavaScript Attacks** - Semgrep mapeia para CWE-95, mas DVWA espera CWE-749
+
+### 9.5 Soluções Implementadas
+
+- Normalização de CWEs com regex e split
+- Detecção de CWE-749 por análise de path (`/javascript/`)
+- Score ajustado que exclui vulnerabilidades fora do escopo
+- Identificação automática do relatório mais recente por prefixo de commit
+
+### 9.6 Valor Gerado
+
+O script permite:
+- Executar análise completa em **segundos** (vs horas manualmente)
+- Comparar execuções diferentes do pipeline
+- Gerar métricas objetivas para o artigo
+- Identificar gaps de forma sistemática
+
+---
+
+## 10. Considerações Finais
 
 Este projeto demonstrou que é possível implementar um pipeline DevSecOps funcional com ferramentas open-source, alcançando **100% de cobertura** para vulnerabilidades detectáveis por automação.
 
