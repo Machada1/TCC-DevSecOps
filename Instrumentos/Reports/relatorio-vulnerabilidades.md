@@ -1,6 +1,6 @@
 # 📊 Análise Completa dos Relatórios de Segurança - Pipeline DevSecOps
 
-**Data:** 16/12/2025 18:14
+**Data:** 09/02/2026 13:01
 
 **Aplicação:** DVWA (Damn Vulnerable Web Application)
 
@@ -482,12 +482,71 @@ A aplicação é vulnerável a ataques de força bruta. Credenciais fracas foram
 Cobertura do pipeline: **13/17** vulnerabilidades conhecidas detectadas (**76.5%**)
 
 Principais motivos para não detecção:
-- Requer interação humana ou automação avançada.
 - Requer autenticação e/ou ataque ativo.
+- Requer interação humana ou automação avançada.
 
 Sugestões para aumentar a cobertura:
 - Fora do escopo do pipeline automatizado.
 - Adicionar ZAP autenticado/active scan na pipeline.
+
+## 7.1 🔬 Validação da Cobertura do ZAP Active Scan
+
+**Score de cobertura:** 0.0%
+
+### CWEs Esperados mas Não Detectados
+
+| CWE | Vulnerabilidade | Crítico | URLs Esperadas |
+| --- | --- | --- | --- |
+| CWE-89 | SQL Injection | ⚠️ Sim | /sqli/, /sqli_blind/ |
+| CWE-79 | Cross-Site Scripting (XSS) | ⚠️ Sim | /xss_r/, /xss_s/, /xss_d/ |
+| CWE-78 | OS Command Injection | ⚠️ Sim | /exec/ |
+| CWE-22 | Path Traversal | Não | /fi/ |
+| CWE-98 | Improper Control of Filename for Include | Não | /fi/ |
+| CWE-352 | Cross-Site Request Forgery (CSRF) | Não | /csrf/ |
+
+### URLs Vulneráveis Não Testadas
+
+- ❌ `/vulnerabilities/sqli/`
+- ❌ `/vulnerabilities/sqli_blind/`
+- ❌ `/vulnerabilities/xss_r/`
+- ❌ `/vulnerabilities/xss_s/`
+- ❌ `/vulnerabilities/xss_d/`
+- ❌ `/vulnerabilities/exec/`
+- ❌ `/vulnerabilities/fi/`
+- ❌ `/vulnerabilities/upload/`
+- ❌ `/vulnerabilities/csrf/`
+- ❌ `/vulnerabilities/brute/`
+- ❌ `/vulnerabilities/captcha/`
+- ❌ `/vulnerabilities/weak_id/`
+
+### Problemas Identificados
+
+- ⚠️ Vulnerabilidades críticas não detectadas: SQL Injection, Cross-Site Scripting (XSS), OS Command Injection
+- ⚠️ 12 URLs vulneráveis não foram testadas
+
+### Recomendações para Melhorar Cobertura DAST
+
+- 💡 Verificar se o DVWA está configurado em nível 'Low'
+- 💡 Verificar se o ZAP está autenticando corretamente no DVWA
+- 💡 Verificar se o Spider está alcançando todas as páginas
+
+## 7.2 ⚠️ Limitações Identificadas na Análise
+
+As seguintes limitações foram identificadas dinamicamente durante a análise:
+
+### SCA (Análise de Composição)
+
+**Problema:** Trivy SCA não encontrou vulnerabilidades em dependências
+
+- **Impacto:** Pode indicar ausência de arquivos de dependência (composer.json, etc.)
+- **Recomendação:** Verificar se o Trivy está analisando o diretório correto com dependências
+
+### DAST (Análise Dinâmica)
+
+**Problema:** Cobertura do ZAP Active Scan baixa (0.0%)
+
+- **Impacto:** Muitas vulnerabilidades conhecidas do DVWA não foram detectadas
+- **Recomendação:** Verificar se o DVWA está configurado em nível 'Low'; Verificar se o ZAP está autenticando corretamente no DVWA; Verificar se o Spider está alcançando todas as páginas
 
 ## 8. 📝 Conclusões e Recomendações para o TCC
 
@@ -537,8 +596,8 @@ Sugestões para aumentar a cobertura:
 **Não detectadas:** 4 (23.5%)
 
 **Motivos para não detecção:**
-- Requer interação humana ou automação avançada.
 - Requer autenticação e/ou ataque ativo.
+- Requer interação humana ou automação avançada.
 
 ### Recomendações Baseadas nos Resultados
 
@@ -551,4 +610,4 @@ Sugestões para aumentar a cobertura:
 
 ---
 
-*Relatório gerado automaticamente em 16/12/2025 às 18:14:59*
+*Relatório gerado automaticamente em 09/02/2026 às 13:01:40*
