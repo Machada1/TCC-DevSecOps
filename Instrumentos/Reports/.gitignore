@@ -1,8 +1,12 @@
-# Relatórios JSON gerados pelo pipeline (baixados do bucket)
-*.json
+# Relatórios JSON temporários (prefixo antigo)
+# Os relatórios finais com prefixo reports-0a8e877_* são versionados
 
-# Relatório HTML do ZAP
+# Relatório HTML do ZAP (temporários)
 zap-report.html
+zap-auth-active-report.html
 
 # Arquivo YAML do ZAP
 zap.yaml
+
+# Cache Python
+__pycache__/

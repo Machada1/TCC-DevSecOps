@@ -1,6 +1,6 @@
 # 📊 Análise Completa dos Relatórios de Segurança - Pipeline DevSecOps
 
-**Data:** 09/02/2026 13:01
+**Data:** 09/02/2026 15:35
 
 **Aplicação:** DVWA (Damn Vulnerable Web Application)
 
@@ -13,18 +13,18 @@
 | Ferramenta | Tipo | Findings | Status |
 | --- | --- | --- | --- |
 | Trivy | Container Scan | 1575 | ✅ Executado |
-| Semgrep | SAST | 5 | ✅ Executado |
+| Semgrep | SAST | 77 | ✅ Executado |
 | Trivy FS | SCA | 0 | ✅ Executado |
-| OWASP ZAP | DAST (Baseline) | 23 | ✅ Executado |
-| OWASP ZAP | DAST (Active Scan) | 12 | ✅ Executado |
+| OWASP ZAP | DAST (Baseline) | 19 | ✅ Executado |
+| OWASP ZAP | DAST (Active Scan) | 13 | ✅ Executado |
 | Checkov | IaC Scan | 63 | ✅ Executado |
 | Hydra | Brute Force | Vulnerável | ✅ Executado |
 
-**Total de issues de segurança identificados: 1679**
+**Total de issues de segurança identificados: 1748**
 
 ## 1. 📦 Container Scan - Trivy
 
-**Imagem analisada:** `dvwa-app:179fbe0`
+**Imagem analisada:** `dvwa-app:0a8e877`
 
 **Sistema Operacional:** debian 9.5
 
@@ -98,53 +98,383 @@
 
 ## 2. 🔍 SAST (Static Application Security Testing) - Semgrep
 
-**Total de findings:** 5
+**Total de findings:** 77
 
 ### Distribuição por Severidade
 
 | Severidade | Quantidade |
 | --- | --- |
-| 🔴 ERROR | 1 |
-| 🟠 WARNING | 2 |
-| 🟢 INFO | 2 |
+| 🔴 ERROR | 51 |
+| 🟠 WARNING | 26 |
+| 🟢 INFO | 0 |
 
 ### Findings por Arquivo
 
-**📄 dvwa.yaml**
+**📄 instructions.php**
 
-- 🟢 **Linha 16:** `run-as-non-root`
-  - CWE: CWE-250: Execution with Unnecessary Privileges
+- 🟠 **Linha 26:** `tainted-filename`
+  - CWE: CWE-918: Server-Side Request Forgery (SSRF)
+  - OWASP: A10:2021 - Server-Side Request Forgery (SSRF)
+
+**📄 login.php**
+
+- 🔴 **Linha 41:** `md5-loose-equality`
+  - CWE: CWE-697: Incorrect Comparison
+  - OWASP: N/A
+
+**📄 phpinfo.php**
+
+- 🔴 **Linha 8:** `phpinfo-use`
+  - CWE: CWE-200: Exposure of Sensitive Information to an Unauthorized Actor
+  - OWASP: A01:2021 - Broken Access Control
+
+**📄 gen_openapi.php**
+
+- 🟠 **Linha 6:** `php-permissive-cors`
+  - CWE: CWE-346: Origin Validation Error
+  - OWASP: A07:2021 - Identification and Authentication Failures
+
+**📄 index.php**
+
+- 🟠 **Linha 11:** `php-permissive-cors`
+  - CWE: CWE-346: Origin Validation Error
+  - OWASP: A07:2021 - Identification and Authentication Failures
+
+**📄 HealthController.php**
+
+- 🟠 **Linha 88:** `tainted-exec`
+  - CWE: CWE-78: Improper Neutralization of Special Elements used in an OS Command ('OS Command Injection')
+  - OWASP: A03:2021 - Injection
+- 🔴 **Linha 88:** `exec-use`
+  - CWE: CWE-94: Improper Control of Generation of Code ('Code Injection')
+  - OWASP: A03:2021 - Injection
+
+**📄 Token.php**
+
+- 🟠 **Linha 39:** `openssl-decrypt-validate`
+  - CWE: CWE-252: Unchecked Return Value
+  - OWASP: A02:2021 - Cryptographic Failures
+
+**📄 authbypass.js**
+
+- 🔴 **Linha 43:** `insecure-document-method`
+  - CWE: CWE-79: Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting')
+  - OWASP: A07:2017 - Cross-Site Scripting (XSS)
+- 🔴 **Linha 45:** `insecure-document-method`
+  - CWE: CWE-79: Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting')
+  - OWASP: A07:2017 - Cross-Site Scripting (XSS)
+- 🔴 **Linha 47:** `insecure-document-method`
+  - CWE: CWE-79: Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting')
+  - OWASP: A07:2017 - Cross-Site Scripting (XSS)
+- 🔴 **Linha 49:** `insecure-document-method`
+  - CWE: CWE-79: Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting')
+  - OWASP: A07:2017 - Cross-Site Scripting (XSS)
+
+**📄 low.php**
+
+- 🔴 **Linha 22:** `tainted-sql-string`
+  - CWE: CWE-89: Improper Neutralization of Special Elements used in an SQL Command ('SQL Injection')
+  - OWASP: A01:2017 - Injection
+- 🔴 **Linha 35:** `tainted-sql-string`
+  - CWE: CWE-89: Improper Neutralization of Special Elements used in an SQL Command ('SQL Injection')
+  - OWASP: A01:2017 - Injection
+- 🔴 **Linha 79:** `tainted-sql-string`
+  - CWE: CWE-89: Improper Neutralization of Special Elements used in an SQL Command ('SQL Injection')
+  - OWASP: A01:2017 - Injection
+
+**📄 medium.php**
+
+- 🔴 **Linha 21:** `tainted-sql-string`
+  - CWE: CWE-89: Improper Neutralization of Special Elements used in an SQL Command ('SQL Injection')
+  - OWASP: A01:2017 - Injection
+- 🔴 **Linha 28:** `tainted-sql-string`
+  - CWE: CWE-89: Improper Neutralization of Special Elements used in an SQL Command ('SQL Injection')
+  - OWASP: A01:2017 - Injection
+- 🔴 **Linha 71:** `tainted-sql-string`
+  - CWE: CWE-89: Improper Neutralization of Special Elements used in an SQL Command ('SQL Injection')
+  - OWASP: A01:2017 - Injection
+
+**📄 high.php**
+
+- 🔴 **Linha 22:** `md5-loose-equality`
+  - CWE: CWE-697: Incorrect Comparison
+  - OWASP: N/A
+
+**📄 low.php**
+
+- 🔴 **Linha 12:** `tainted-sql-string`
+  - CWE: CWE-89: Improper Neutralization of Special Elements used in an SQL Command ('SQL Injection')
+  - OWASP: A01:2017 - Injection
+- 🔴 **Linha 15:** `md5-loose-equality`
+  - CWE: CWE-697: Incorrect Comparison
+  - OWASP: N/A
+
+**📄 medium.php**
+
+- 🔴 **Linha 17:** `md5-loose-equality`
+  - CWE: CWE-697: Incorrect Comparison
+  - OWASP: N/A
+
+**📄 impossible.php**
+
+- 🔴 **Linha 46:** `md5-loose-equality`
+  - CWE: CWE-697: Incorrect Comparison
+  - OWASP: N/A
+
+**📄 ecb_attack.php**
+
+- 🔴 **Linha 92:** `md5-loose-equality`
+  - CWE: CWE-697: Incorrect Comparison
+  - OWASP: N/A
+- 🔴 **Linha 92:** `md5-loose-equality`
+  - CWE: CWE-697: Incorrect Comparison
+  - OWASP: N/A
+
+**📄 high.js**
+
+- 🔴 **Linha 9:** `insecure-document-method`
+  - CWE: CWE-79: Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting')
+  - OWASP: A07:2017 - Cross-Site Scripting (XSS)
+
+**📄 impossible.js**
+
+- 🔴 **Linha 9:** `insecure-document-method`
+  - CWE: CWE-79: Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting')
+  - OWASP: A07:2017 - Cross-Site Scripting (XSS)
+
+**📄 jsonp.php**
+
+- 🔴 **Linha 12:** `echoed-request`
+  - CWE: CWE-79: Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting')
+  - OWASP: A07:2017 - Cross-Site Scripting (XSS)
+
+**📄 test_credentials.php**
+
+- 🔴 **Linha 23:** `md5-loose-equality`
+  - CWE: CWE-697: Incorrect Comparison
+  - OWASP: N/A
+
+**📄 high.php**
+
+- 🔴 **Linha 26:** `exec-use`
+  - CWE: CWE-94: Improper Control of Generation of Code ('Code Injection')
+  - OWASP: A03:2021 - Injection
+- 🟠 **Linha 26:** `tainted-exec`
+  - CWE: CWE-78: Improper Neutralization of Special Elements used in an OS Command ('OS Command Injection')
+  - OWASP: A03:2021 - Injection
+- 🔴 **Linha 26:** `tainted-exec`
+  - CWE: CWE-94: Improper Control of Generation of Code ('Code Injection')
+  - OWASP: A03:2021 - Injection
+- 🔴 **Linha 30:** `exec-use`
+  - CWE: CWE-94: Improper Control of Generation of Code ('Code Injection')
+  - OWASP: A03:2021 - Injection
+- 🟠 **Linha 30:** `tainted-exec`
+  - CWE: CWE-78: Improper Neutralization of Special Elements used in an OS Command ('OS Command Injection')
+  - OWASP: A03:2021 - Injection
+- 🔴 **Linha 30:** `tainted-exec`
+  - CWE: CWE-94: Improper Control of Generation of Code ('Code Injection')
+  - OWASP: A03:2021 - Injection
+
+**📄 impossible.php**
+
+- 🔴 **Linha 22:** `exec-use`
+  - CWE: CWE-94: Improper Control of Generation of Code ('Code Injection')
+  - OWASP: A03:2021 - Injection
+- 🟠 **Linha 22:** `tainted-exec`
+  - CWE: CWE-78: Improper Neutralization of Special Elements used in an OS Command ('OS Command Injection')
+  - OWASP: A03:2021 - Injection
+- 🔴 **Linha 22:** `tainted-exec`
+  - CWE: CWE-94: Improper Control of Generation of Code ('Code Injection')
+  - OWASP: A03:2021 - Injection
+- 🔴 **Linha 26:** `exec-use`
+  - CWE: CWE-94: Improper Control of Generation of Code ('Code Injection')
+  - OWASP: A03:2021 - Injection
+- 🟠 **Linha 26:** `tainted-exec`
+  - CWE: CWE-78: Improper Neutralization of Special Elements used in an OS Command ('OS Command Injection')
+  - OWASP: A03:2021 - Injection
+- 🔴 **Linha 26:** `tainted-exec`
+  - CWE: CWE-94: Improper Control of Generation of Code ('Code Injection')
+  - OWASP: A03:2021 - Injection
+
+**📄 low.php**
+
+- 🔴 **Linha 10:** `exec-use`
+  - CWE: CWE-94: Improper Control of Generation of Code ('Code Injection')
+  - OWASP: A03:2021 - Injection
+- 🟠 **Linha 10:** `tainted-exec`
+  - CWE: CWE-78: Improper Neutralization of Special Elements used in an OS Command ('OS Command Injection')
+  - OWASP: A03:2021 - Injection
+- 🔴 **Linha 10:** `tainted-exec`
+  - CWE: CWE-94: Improper Control of Generation of Code ('Code Injection')
+  - OWASP: A03:2021 - Injection
+- 🔴 **Linha 14:** `exec-use`
+  - CWE: CWE-94: Improper Control of Generation of Code ('Code Injection')
+  - OWASP: A03:2021 - Injection
+- 🟠 **Linha 14:** `tainted-exec`
+  - CWE: CWE-78: Improper Neutralization of Special Elements used in an OS Command ('OS Command Injection')
+  - OWASP: A03:2021 - Injection
+- 🔴 **Linha 14:** `tainted-exec`
+  - CWE: CWE-94: Improper Control of Generation of Code ('Code Injection')
+  - OWASP: A03:2021 - Injection
+
+**📄 medium.php**
+
+- 🔴 **Linha 19:** `exec-use`
+  - CWE: CWE-94: Improper Control of Generation of Code ('Code Injection')
+  - OWASP: A03:2021 - Injection
+- 🟠 **Linha 19:** `tainted-exec`
+  - CWE: CWE-78: Improper Neutralization of Special Elements used in an OS Command ('OS Command Injection')
+  - OWASP: A03:2021 - Injection
+- 🔴 **Linha 19:** `tainted-exec`
+  - CWE: CWE-94: Improper Control of Generation of Code ('Code Injection')
+  - OWASP: A03:2021 - Injection
+- 🔴 **Linha 23:** `exec-use`
+  - CWE: CWE-94: Improper Control of Generation of Code ('Code Injection')
+  - OWASP: A03:2021 - Injection
+- 🟠 **Linha 23:** `tainted-exec`
+  - CWE: CWE-78: Improper Neutralization of Special Elements used in an OS Command ('OS Command Injection')
+  - OWASP: A03:2021 - Injection
+- 🔴 **Linha 23:** `tainted-exec`
+  - CWE: CWE-94: Improper Control of Generation of Code ('Code Injection')
+  - OWASP: A03:2021 - Injection
+
+**📄 high.php**
+
+- 🟠 **Linha 7:** `tainted-filename`
+  - CWE: CWE-918: Server-Side Request Forgery (SSRF)
+  - OWASP: A10:2021 - Server-Side Request Forgery (SSRF)
+
+**📄 index.php**
+
+- 🔴 **Linha 43:** `md5-loose-equality`
+  - CWE: CWE-697: Incorrect Comparison
+  - OWASP: N/A
+- 🔴 **Linha 57:** `md5-loose-equality`
+  - CWE: CWE-697: Incorrect Comparison
+  - OWASP: N/A
+
+**📄 high.js**
+
+- 🟠 **Linha 1:** `eval-detected`
+  - CWE: CWE-95: Improper Neutralization of Directives in Dynamically Evaluated Code ('Eval Injection')
+  - OWASP: A03:2021 - Injection
+- 🟠 **Linha 1:** `detect-non-literal-regexp`
+  - CWE: CWE-1333: Inefficient Regular Expression Complexity
   - OWASP: A05:2021 - Security Misconfiguration
-- 🟠 **Linha 18:** `allow-privilege-escalation-no-securitycontext`
-  - CWE: CWE-732: Incorrect Permission Assignment for Critical Resource
-  - OWASP: A05:2021 - Security Misconfiguration
 
-**📄 mysql.yaml**
+**📄 low.php**
 
-- 🟢 **Linha 27:** `run-as-non-root`
-  - CWE: CWE-250: Execution with Unnecessary Privileges
-  - OWASP: A05:2021 - Security Misconfiguration
-- 🟠 **Linha 29:** `allow-privilege-escalation-no-securitycontext`
-  - CWE: CWE-732: Incorrect Permission Assignment for Critical Resource
-  - OWASP: A05:2021 - Security Misconfiguration
+- 🔴 **Linha 10:** `tainted-sql-string`
+  - CWE: CWE-89: Improper Neutralization of Special Elements used in an SQL Command ('SQL Injection')
+  - OWASP: A01:2017 - Injection
+- 🔴 **Linha 31:** `tainted-sql-string`
+  - CWE: CWE-89: Improper Neutralization of Special Elements used in an SQL Command ('SQL Injection')
+  - OWASP: A01:2017 - Injection
 
-**📄 hydra.Dockerfile**
+**📄 high.php**
 
-- 🔴 **Linha 4:** `missing-user-entrypoint`
-  - CWE: CWE-269: Improper Privilege Management
-  - OWASP: A04:2021 - Insecure Design
+- 🔴 **Linha 11:** `tainted-sql-string`
+  - CWE: CWE-89: Improper Neutralization of Special Elements used in an SQL Command ('SQL Injection')
+  - OWASP: A01:2017 - Injection
+- 🔴 **Linha 33:** `tainted-sql-string`
+  - CWE: CWE-89: Improper Neutralization of Special Elements used in an SQL Command ('SQL Injection')
+  - OWASP: A01:2017 - Injection
+
+**📄 low.php**
+
+- 🔴 **Linha 11:** `tainted-sql-string`
+  - CWE: CWE-89: Improper Neutralization of Special Elements used in an SQL Command ('SQL Injection')
+  - OWASP: A01:2017 - Injection
+- 🔴 **Linha 32:** `tainted-sql-string`
+  - CWE: CWE-89: Improper Neutralization of Special Elements used in an SQL Command ('SQL Injection')
+  - OWASP: A01:2017 - Injection
+
+**📄 medium.php**
+
+- 🔴 **Linha 34:** `tainted-sql-string`
+  - CWE: CWE-89: Improper Neutralization of Special Elements used in an SQL Command ('SQL Injection')
+  - OWASP: A01:2017 - Injection
+
+**📄 impossible.php**
+
+- 🟠 **Linha 51:** `unlink-use`
+  - CWE: CWE-22: Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')
+  - OWASP: A05:2017 - Broken Access Control
+
+**📄 view_help.php**
+
+- 🔴 **Linha 20:** `eval-use`
+  - CWE: CWE-78: Improper Neutralization of Special Elements used in an OS Command ('OS Command Injection')
+  - OWASP: A01:2017 - Injection
+- 🟠 **Linha 20:** `tainted-filename`
+  - CWE: CWE-918: Server-Side Request Forgery (SSRF)
+  - OWASP: A10:2021 - Server-Side Request Forgery (SSRF)
+- 🔴 **Linha 22:** `eval-use`
+  - CWE: CWE-78: Improper Neutralization of Special Elements used in an OS Command ('OS Command Injection')
+  - OWASP: A01:2017 - Injection
+- 🟠 **Linha 22:** `tainted-filename`
+  - CWE: CWE-918: Server-Side Request Forgery (SSRF)
+  - OWASP: A10:2021 - Server-Side Request Forgery (SSRF)
+
+**📄 view_source.php**
+
+- 🟠 **Linha 63:** `tainted-filename`
+  - CWE: CWE-918: Server-Side Request Forgery (SSRF)
+  - OWASP: A10:2021 - Server-Side Request Forgery (SSRF)
+- 🟠 **Linha 67:** `tainted-filename`
+  - CWE: CWE-918: Server-Side Request Forgery (SSRF)
+  - OWASP: A10:2021 - Server-Side Request Forgery (SSRF)
+- 🟠 **Linha 68:** `tainted-filename`
+  - CWE: CWE-918: Server-Side Request Forgery (SSRF)
+  - OWASP: A10:2021 - Server-Side Request Forgery (SSRF)
+
+**📄 view_source_all.php**
+
+- 🟠 **Linha 14:** `tainted-filename`
+  - CWE: CWE-918: Server-Side Request Forgery (SSRF)
+  - OWASP: A10:2021 - Server-Side Request Forgery (SSRF)
+- 🟠 **Linha 18:** `tainted-filename`
+  - CWE: CWE-918: Server-Side Request Forgery (SSRF)
+  - OWASP: A10:2021 - Server-Side Request Forgery (SSRF)
+- 🟠 **Linha 22:** `tainted-filename`
+  - CWE: CWE-918: Server-Side Request Forgery (SSRF)
+  - OWASP: A10:2021 - Server-Side Request Forgery (SSRF)
+- 🟠 **Linha 26:** `tainted-filename`
+  - CWE: CWE-918: Server-Side Request Forgery (SSRF)
+  - OWASP: A10:2021 - Server-Side Request Forgery (SSRF)
 
 ### CWEs Identificados
 
-- **CWE-250: Execution with Unnecessary Privileges**: 2 ocorrência(s)
-- **CWE-732: Incorrect Permission Assignment for Critical Resource**: 2 ocorrência(s)
-- **CWE-269: Improper Privilege Management**: 1 ocorrência(s)
+- **CWE-918: Server-Side Request Forgery (SSRF)**: 11 ocorrência(s)
+- **CWE-697: Incorrect Comparison**: 10 ocorrência(s)
+- **CWE-200: Exposure of Sensitive Information to an Unauthorized Actor**: 1 ocorrência(s)
+- **CWE-346: Origin Validation Error**: 2 ocorrência(s)
+- **CWE-78: Improper Neutralization of Special Elements used in an OS Command ('OS Command Injection')**: 11 ocorrência(s)
+- **CWE-94: Improper Control of Generation of Code ('Code Injection')**: 17 ocorrência(s)
+- **CWE-252: Unchecked Return Value**: 1 ocorrência(s)
+- **CWE-79: Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting')**: 7 ocorrência(s)
+- **CWE-89: Improper Neutralization of Special Elements used in an SQL Command ('SQL Injection')**: 14 ocorrência(s)
+- **CWE-95: Improper Neutralization of Directives in Dynamically Evaluated Code ('Eval Injection')**: 1 ocorrência(s)
+- **CWE-1333: Inefficient Regular Expression Complexity**: 1 ocorrência(s)
+- **CWE-22: Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')**: 1 ocorrência(s)
 
 ### Mapeamento OWASP Top 10
 
-- **A05:2021 - Security Misconfiguration**: 4 ocorrência(s)
-- **A06:2017 - Security Misconfiguration**: 4 ocorrência(s)
-- **A04:2021 - Insecure Design**: 1 ocorrência(s)
+- **A10:2021 - Server-Side Request Forgery (SSRF)**: 11 ocorrência(s)
+- **A01:2025 - Broken Access Control**: 13 ocorrência(s)
+- **A01:2021 - Broken Access Control**: 2 ocorrência(s)
+- **A07:2021 - Identification and Authentication Failures**: 2 ocorrência(s)
+- **A07:2025 - Authentication Failures**: 2 ocorrência(s)
+- **A03:2021 - Injection**: 50 ocorrência(s)
+- **A05:2025 - Injection**: 50 ocorrência(s)
+- **A02:2021 - Cryptographic Failures**: 1 ocorrência(s)
+- **A04:2025 - Cryptographic Failures**: 1 ocorrência(s)
+- **A07:2017 - Cross-Site Scripting (XSS)**: 7 ocorrência(s)
+- **A01:2017 - Injection**: 16 ocorrência(s)
+- **A05:2021 - Security Misconfiguration**: 1 ocorrência(s)
+- **A06:2017 - Security Misconfiguration**: 1 ocorrência(s)
+- **A02:2025 - Security Misconfiguration**: 1 ocorrência(s)
+- **A05:2017 - Broken Access Control**: 1 ocorrência(s)
 
 ## 3. 📦 SCA (Software Composition Analysis) - Trivy FS
 
@@ -152,21 +482,23 @@
 
 **Vulnerabilidades em dependências:** 0
 
-✅ **NENHUMA VULNERABILIDADE ENCONTRADA EM DEPENDÊNCIAS!**
+✅ **NENHUMA VULNERABILIDADE CONHECIDA ENCONTRADA EM DEPENDÊNCIAS**
+
+*Nota: Este resultado indica que as dependências declaradas (composer.lock, package-lock.json, etc.) não possuem CVEs conhecidas registradas nos bancos de dados de vulnerabilidades consultados pelo Trivy. Isso é um resultado positivo e válido.*
 
 ## 4. 🌐 DAST (Dynamic Application Security Testing) - OWASP ZAP
 
-**Alvo:** `https://34.9.5.224`
+**Alvo:** `https://34.172.122.255`
 
-**Total de alertas:** 23
+**Total de alertas:** 19
 
 ### Distribuição por Risco
 
 | Nível de Risco | Quantidade |
 | --- | --- |
-| Medium | 6 |
-| Low | 9 |
-| Informational | 8 |
+| Medium | 5 |
+| Low | 7 |
+| Informational | 7 |
 
 ### Alertas Encontrados
 
@@ -195,11 +527,6 @@
 - CWE: CWE-20
 - Descrição: The web server is configured to serve responses to ambiguous URLs in a manner that is likely to lead...
 
-**🟠 Source Code Disclosure - SQL**
-- Risco: Medium (Medium)
-- CWE: CWE-540
-- Descrição: Application Source Code was disclosed by the web server. - SQL ...
-
 **🟡 Cookie No HttpOnly Flag**
 - Risco: Low (Medium)
 - CWE: CWE-1004
@@ -210,20 +537,10 @@
 - CWE: CWE-1275
 - Descrição: A cookie has been set without the SameSite attribute, which means that the cookie can be sent as a r...
 
-**🟡 Dangerous JS Functions**
-- Risco: Low (Low)
-- CWE: CWE-749
-- Descrição: A dangerous JS function seems to be in use that would leave the site vulnerable. ...
-
 **🟡 In Page Banner Information Leak**
 - Risco: Low (High)
 - CWE: CWE-497
 - Descrição: The server returned a version banner string in the response content. Such information leaks may allo...
-
-**🟡 Information Disclosure - Debug Error Messages**
-- Risco: Low (Medium)
-- CWE: CWE-1295
-- Descrição: The response appeared to contain common error messages returned by platforms such as ASP.NET, and We...
 
 **🟡 Insufficient Site Isolation Against Spectre Vulnerability**
 - Risco: Low (Medium)
@@ -254,11 +571,6 @@
 - Risco: Informational (Low)
 - CWE: CWE-205
 - Descrição: Repeated GET requests: drop a different cookie each time, followed by normal request with all cookie...
-
-**🔵 Information Disclosure - Suspicious Comments**
-- Risco: Informational (Medium)
-- CWE: CWE-615
-- Descrição: The response appears to contain suspicious comments which may help an attacker. ...
 
 **🔵 Non-Storable Content**
 - Risco: Informational (Medium)
@@ -292,23 +604,19 @@
 - **CWE-311**: 1 ocorrência(s)
 - **CWE-1021**: 1 ocorrência(s)
 - **CWE-20**: 1 ocorrência(s)
-- **CWE-540**: 1 ocorrência(s)
 - **CWE-1004**: 1 ocorrência(s)
 - **CWE-1275**: 1 ocorrência(s)
-- **CWE-749**: 1 ocorrência(s)
 - **CWE-497**: 2 ocorrência(s)
-- **CWE-1295**: 1 ocorrência(s)
 - **CWE--1**: 2 ocorrência(s)
 - **CWE-205**: 1 ocorrência(s)
-- **CWE-615**: 1 ocorrência(s)
 - **CWE-524**: 3 ocorrência(s)
 - **CWE-0**: 1 ocorrência(s)
 
 ## 4.1 🔓 DAST Active Scan (Autenticado) - OWASP ZAP
 
-**Alvo:** `http://34.9.5.224`
+**Alvo:** `http://34.172.122.255`
 
-**Total de alertas:** 12
+**Total de alertas:** 13
 
 **Tipo de scan:** Active Scan com autenticação (detecta SQL Injection, XSS, etc.)
 
@@ -316,81 +624,89 @@
 
 | Nível de Risco | Quantidade |
 | --- | --- |
-| Medium | 4 |
-| Low | 5 |
+| High | 1 |
+| Medium | 5 |
+| Low | 4 |
 | Informational | 3 |
 
 ### Alertas Encontrados (Active Scan)
 
-**🔵 Session Management Response Identified** (x1)
-- Risco: Informational
-- CWE: CWE--1
-- Descrição: The given response has been identified as containing a session management token. The 'Other Info' fi...
+**🟠 Missing Anti-clickjacking Header** (x7)
+- Risco: Medium
+- CWE: CWE-1021
+- Descrição: The response does not protect against 'ClickJacking' attacks. It should include either Content-Secur...
 
-**🟠 Content Security Policy (CSP) Header Not Set** (x2)
+**🟠 Content Security Policy (CSP) Header Not Set** (x9)
 - Risco: Medium
 - CWE: CWE-693
 - Descrição: Content Security Policy (CSP) is an added layer of security that helps to detect and mitigate certai...
 
-**🟡 Cookie No HttpOnly Flag** (x2)
-- Risco: Low
-- CWE: CWE-1004
-- Descrição: A cookie has been set without the HttpOnly flag, which means that the cookie can be accessed by Java...
-
-**🟡 In Page Banner Information Leak** (x1)
-- Risco: Low
-- CWE: CWE-497
-- Descrição: The server returned a version banner string in the response content. Such information leaks may allo...
-
-**🟡 Cookie without SameSite Attribute** (x2)
-- Risco: Low
-- CWE: CWE-1275
-- Descrição: A cookie has been set without the SameSite attribute, which means that the cookie can be sent as a r...
-
-**🟡 Server Leaks Version Information via "Server" HTTP Response Header Field** (x9)
+**🟡 Server Leaks Version Information via "Server" HTTP Response Header Field** (x52)
 - Risco: Low
 - CWE: CWE-497
 - Descrição: The web/application server is leaking version information via the "Server" HTTP response header. Acc...
 
-**🟡 X-Content-Type-Options Header Missing** (x5)
+**🟡 X-Content-Type-Options Header Missing** (x22)
 - Risco: Low
 - CWE: CWE-693
 - Descrição: The Anti-MIME-Sniffing header X-Content-Type-Options was not set to 'nosniff'. This allows older ver...
 
-**🟠 Missing Anti-clickjacking Header** (x1)
+**🟡 In Page Banner Information Leak** (x2)
+- Risco: Low
+- CWE: CWE-497
+- Descrição: The server returned a version banner string in the response content. Such information leaks may allo...
+
+**🟠 Application Error Disclosure** (x2)
 - Risco: Medium
-- CWE: CWE-1021
-- Descrição: The response does not protect against 'ClickJacking' attacks. It should include either Content-Secur...
+- CWE: CWE-550
+- Descrição: This page contains an error/warning message that may disclose sensitive information like the locatio...
+
+**🟠 Directory Browsing** (x8)
+- Risco: Medium
+- CWE: CWE-548
+- Descrição: It is possible to view a listing of the directory contents. Directory listings may reveal hidden scr...
 
 **🔵 Authentication Request Identified** (x1)
 - Risco: Informational
 - CWE: CWE--1
 - Descrição: The given request has been identified as an authentication request. The 'Other Info' field contains ...
 
-**🟠 Directory Browsing** (x3)
-- Risco: Medium
-- CWE: CWE-548
-- Descrição: It is possible to view the directory listing. Directory listing may reveal hidden scripts, include f...
+**🔵 Information Disclosure - Suspicious Comments** (x1)
+- Risco: Informational
+- CWE: CWE-615
+- Descrição: The response appears to contain suspicious comments which may help an attacker....
+
+**🟡 Information Disclosure - Debug Error Messages** (x2)
+- Risco: Low
+- CWE: CWE-1295
+- Descrição: The response appeared to contain common error messages returned by platforms such as ASP.NET, and We...
+
+**🔴 SQL Injection** (x1)
+- Risco: High
+- CWE: CWE-89
+- Descrição: SQL injection may be possible....
 
 **🟠 HTTP Only Site** (x1)
 - Risco: Medium
 - CWE: CWE-311
 - Descrição: The site is only served under HTTP and not HTTPS....
 
-**🔵 User Agent Fuzzer** (x84)
+**🔵 User Agent Fuzzer** (x553)
 - Risco: Informational
 - CWE: CWE-0
 - Descrição: Check for differences in response based on fuzzed User Agent (eg. mobile sites, access as a Search E...
 
 ### CWEs Detectados pelo Active Scan
 
-- **CWE--1**: 2 ocorrência(s)
-- **CWE-693**: 2 ocorrência(s)
-- **CWE-1004**: 1 ocorrência(s)
-- **CWE-497**: 2 ocorrência(s)
-- **CWE-1275**: 1 ocorrência(s)
 - **CWE-1021**: 1 ocorrência(s)
+- **CWE-693**: 2 ocorrência(s)
+- **CWE-497**: 2 ocorrência(s)
+- **CWE-550**: 1 ocorrência(s)
 - **CWE-548**: 1 ocorrência(s)
+- **CWE--1**: 1 ocorrência(s)
+- **CWE-615**: 1 ocorrência(s)
+- **CWE-1295**: 1 ocorrência(s)
+- **CWE-89**: 1 ocorrência(s)
 - **CWE-311**: 1 ocorrência(s)
 - **CWE-0**: 1 ocorrência(s)
 
@@ -436,7 +752,7 @@
 
 ### ⚠️ Vulnerabilidade Detectada!
 
-**Resultado:** VULNERÁVEL: 93 credenciais fracas encontradas
+**Resultado:** VULNERÁVEL: 102 credenciais fracas encontradas
 
 A aplicação é vulnerável a ataques de força bruta. Credenciais fracas foram encontradas.
 
@@ -452,19 +768,19 @@ A aplicação é vulnerável a ataques de força bruta. Credenciais fracas foram
 
 | Vulnerabilidade | Categoria | CWE | Ferramenta | Descrição |
 | --- | --- | --- | --- | --- |
-| SQL Injection | web_application | CWE-89 | Trivy (Container) | Permite injeção de comandos SQL em campo... |
-| Cross-Site Scripting (XSS) | web_application | CWE-79 | Trivy (Container) | Permite execução de scripts maliciosos n... |
-| Command Injection | web_application | CWE-78 | Trivy (Container) | Permite execução de comandos do sistema ... |
-| CSRF | web_application | CWE-352 | Trivy (Container) | Cross-Site Request Forgery... |
-| Weak Session IDs | web_application | CWE-330 | Trivy (Container) | IDs de sessão previsíveis... |
-| Brute Force | web_application | CWE-307 | Hydra | Ausência de proteção contra força bruta... |
-| Open HTTP Redirect | web_application | CWE-601 | Trivy (Container) | Redirecionamento aberto para sites malic... |
-| JavaScript Attacks | web_application | CWE-749 | OWASP ZAP (Baseline) | Exposição de lógica sensível no cliente... |
-| Content Security Policy Bypass | web_application | CWE-693 | OWASP ZAP (Active Scan) | Ausência ou bypass de CSP... |
-| Outdated OS | infrastructure | CWE-1104 | Trivy (Container - EOSL) | Sistema operacional desatualizado (Debia... |
-| Outdated Packages | infrastructure | CWE-1104 | Trivy (Container - EOSL) | Pacotes com vulnerabilidades conhecidas... |
-| Default Credentials | infrastructure | CWE-798 | Hydra | Credenciais padrão (admin/password)... |
-| Exposed MySQL | infrastructure | CWE-284 | Trivy (Container) | MySQL com credenciais fracas... |
+| SQL Injection | web_application | CWE-89 | OWASP ZAP (Active Scan) | Permite injeção de comandos SQL em campos de entrada |
+| Cross-Site Scripting (XSS) | web_application | CWE-79 | Semgrep | Permite execução de scripts maliciosos no navegador |
+| Command Injection | web_application | CWE-78 | Semgrep | Permite execução de comandos do sistema operacional |
+| CSRF | web_application | CWE-352 | Trivy (Container) | Cross-Site Request Forgery |
+| Weak Session IDs | web_application | CWE-330 | Trivy (Container) | IDs de sessão previsíveis |
+| Brute Force | web_application | CWE-307 | Hydra | Ausência de proteção contra força bruta |
+| Open HTTP Redirect | web_application | CWE-601 | Trivy (Container) | Redirecionamento aberto para sites maliciosos |
+| JavaScript Attacks | web_application | CWE-749 | Semgrep (JavaScript Analysis) | Exposição de lógica sensível no cliente |
+| Content Security Policy Bypass | web_application | CWE-693 | OWASP ZAP (Active Scan) | Ausência ou bypass de CSP |
+| Outdated OS | infrastructure | CWE-1104 | Trivy (Container - EOSL) | Sistema operacional desatualizado (Debian 9.5 EOSL) |
+| Outdated Packages | infrastructure | CWE-1104 | Trivy (Container - EOSL) | Pacotes com vulnerabilidades conhecidas |
+| Default Credentials | infrastructure | CWE-798 | Hydra | Credenciais padrão (admin/password) |
+| Exposed MySQL | infrastructure | CWE-284 | Trivy (Container) | MySQL com credenciais fracas |
 
 
 ### ❌ Vulnerabilidades Não Detectadas
@@ -481,54 +797,81 @@ A aplicação é vulnerável a ataques de força bruta. Credenciais fracas foram
 
 Cobertura do pipeline: **13/17** vulnerabilidades conhecidas detectadas (**76.5%**)
 
-Principais motivos para não detecção:
-- Requer autenticação e/ou ataque ativo.
-- Requer interação humana ou automação avançada.
+**Avaliação:** ✅ **BOM** - O pipeline atende aos requisitos básicos de segurança, mas há espaço para melhorias
 
-Sugestões para aumentar a cobertura:
-- Fora do escopo do pipeline automatizado.
-- Adicionar ZAP autenticado/active scan na pipeline.
+#### Cobertura Ajustada (Escopo Automatizável)
+
+Cobertura considerando apenas vulnerabilidades detectáveis por automação: **13/13** (**100.0%**)
+
+*4 vulnerabilidades estão fora do escopo de pipelines CI/CD automatizados.*
+
+#### ⚠️ Vulnerabilidades Fora do Escopo de Automação
+
+As seguintes vulnerabilidades do DVWA **não são detectáveis** por ferramentas automatizadas em pipelines CI/CD:
+
+| Vulnerabilidade | CWE | Motivo | Alternativa |
+| --- | --- | --- | --- |
+| File Inclusion (LFI/RFI) | CWE-98 | Requer navegação manual por diretórios e payloads específicos de inclusão de arquivos | Pentest manual ou IAST (Interactive Application Security Testing) |
+| File Upload | CWE-434 | Requer upload real de arquivos maliciosos e verificação de execução no servidor | Pentest manual com upload de webshells |
+| Insecure CAPTCHA | CWE-804 | CAPTCHA é projetado para impedir automação; testar sua fraqueza requer análise humana | Análise manual do mecanismo de CAPTCHA |
+| Authorisation Bypass | CWE-639 | Requer entendimento da lógica de negócio e testes com múltiplos usuários/sessões | Testes manuais de controle de acesso com diferentes perfis |
+
+
+**Importante:** Essas vulnerabilidades existem no DVWA e são exploráveis, porém sua detecção requer testes manuais de penetração (pentest), ferramentas interativas ou conhecimento da lógica de negócio da aplicação. Isso demonstra uma **limitação inerente** de pipelines DevSecOps automatizados.
 
 ## 7.1 🔬 Validação da Cobertura do ZAP Active Scan
 
-**Score de cobertura:** 0.0%
+**Score de cobertura de injeção:** 16.7%
 
-### CWEs Esperados mas Não Detectados
+*Nota: Este score mede especificamente a detecção de vulnerabilidades de **injeção** (SQLi, XSS, Command Injection) que são o foco do Active Scan. O ZAP Active Scan **detectou outros tipos de vulnerabilidades** (configuração de headers, cookies, CORS, etc.) que são válidas mas não entram neste cálculo específico.*
+
+**CWEs efetivamente detectados pelo Active Scan:** CWE-89, CWE-311, CWE-497, CWE-548, CWE-550, CWE-615, CWE-693, CWE-1021, CWE-1295
+
+Estes CWEs representam vulnerabilidades reais encontradas (ex: cabeçalhos de segurança ausentes, configurações inseguras de cookies), mesmo que não sejam vulnerabilidades de injeção.
+
+### CWEs de Injeção Detectados
+
+| CWE | Vulnerabilidade | Crítico |
+| --- | --- | --- |
+| CWE-89 | SQL Injection | ✅ Sim |
+
+### CWEs de Injeção Esperados mas Não Detectados
 
 | CWE | Vulnerabilidade | Crítico | URLs Esperadas |
 | --- | --- | --- | --- |
-| CWE-89 | SQL Injection | ⚠️ Sim | /sqli/, /sqli_blind/ |
 | CWE-79 | Cross-Site Scripting (XSS) | ⚠️ Sim | /xss_r/, /xss_s/, /xss_d/ |
 | CWE-78 | OS Command Injection | ⚠️ Sim | /exec/ |
 | CWE-22 | Path Traversal | Não | /fi/ |
 | CWE-98 | Improper Control of Filename for Include | Não | /fi/ |
 | CWE-352 | Cross-Site Request Forgery (CSRF) | Não | /csrf/ |
 
-### URLs Vulneráveis Não Testadas
 
-- ❌ `/vulnerabilities/sqli/`
-- ❌ `/vulnerabilities/sqli_blind/`
-- ❌ `/vulnerabilities/xss_r/`
-- ❌ `/vulnerabilities/xss_s/`
-- ❌ `/vulnerabilities/xss_d/`
-- ❌ `/vulnerabilities/exec/`
-- ❌ `/vulnerabilities/fi/`
-- ❌ `/vulnerabilities/upload/`
-- ❌ `/vulnerabilities/csrf/`
-- ❌ `/vulnerabilities/brute/`
-- ❌ `/vulnerabilities/captcha/`
-- ❌ `/vulnerabilities/weak_id/`
+*A não detecção de vulnerabilidades de injeção pelo Active Scan pode ocorrer por:*
+- *Sessão HTTP não configurada corretamente no ZAP (cookies não persistem entre requisições)*
+- *DVWA configurado em nível de segurança 'Medium' ou 'High' que bloqueia payloads comuns*
+- *Timeouts do scan ou limitações de profundidade configurados*
+- *Necessidade de contexto de autenticação mais específico*
+### URLs Vulneráveis Testadas
+
+- ✅ `/vulnerabilities/sqli/`
+- ✅ `/vulnerabilities/sqli_blind/`
+- ✅ `/vulnerabilities/xss_r/`
+- ✅ `/vulnerabilities/xss_s/`
+- ✅ `/vulnerabilities/xss_d/`
+- ✅ `/vulnerabilities/exec/`
+- ✅ `/vulnerabilities/fi/`
+- ✅ `/vulnerabilities/upload/`
+- ✅ `/vulnerabilities/csrf/`
+- ✅ `/vulnerabilities/brute/`
 
 ### Problemas Identificados
 
-- ⚠️ Vulnerabilidades críticas não detectadas: SQL Injection, Cross-Site Scripting (XSS), OS Command Injection
-- ⚠️ 12 URLs vulneráveis não foram testadas
+- ⚠️ Vulnerabilidades críticas não detectadas: Cross-Site Scripting (XSS), OS Command Injection
 
 ### Recomendações para Melhorar Cobertura DAST
 
 - 💡 Verificar se o DVWA está configurado em nível 'Low'
 - 💡 Verificar se o ZAP está autenticando corretamente no DVWA
-- 💡 Verificar se o Spider está alcançando todas as páginas
 
 ## 7.2 ⚠️ Limitações Identificadas na Análise
 
@@ -543,12 +886,12 @@ As seguintes limitações foram identificadas dinamicamente durante a análise:
 
 ### DAST (Análise Dinâmica)
 
-**Problema:** Cobertura do ZAP Active Scan baixa (0.0%)
+**Problema:** Cobertura do ZAP Active Scan baixa (16.7%)
 
 - **Impacto:** Muitas vulnerabilidades conhecidas do DVWA não foram detectadas
-- **Recomendação:** Verificar se o DVWA está configurado em nível 'Low'; Verificar se o ZAP está autenticando corretamente no DVWA; Verificar se o Spider está alcançando todas as páginas
+- **Recomendação:** Verificar se o DVWA está configurado em nível 'Low'; Verificar se o ZAP está autenticando corretamente no DVWA
 
-## 8. 📝 Conclusões e Recomendações para o TCC
+## 8. 📝 Conclusões e Recomendações
 
 ### Principais Descobertas
 
@@ -563,12 +906,12 @@ As seguintes limitações foram identificadas dinamicamente durante a análise:
    - Recomendação: Revisar e aplicar as correções sugeridas pelo Checkov
 
 3. **ANÁLISE ESTÁTICA (SAST)**
-   - Semgrep identificou 5 potenciais problemas no código
-   - CWEs encontrados: CWE-250: Execution with Unnecessary Privileges, CWE-732: Incorrect Permission Assignment for Critical Resource, CWE-269: Improper Privilege Management
+   - Semgrep identificou 77 potenciais problemas no código
+   - CWEs encontrados: CWE-918: Server-Side Request Forgery (SSRF), CWE-697: Incorrect Comparison, CWE-200: Exposure of Sensitive Information to an Unauthorized Actor, CWE-346: Origin Validation Error, CWE-78: Improper Neutralization of Special Elements used in an OS Command ('OS Command Injection')
    - Recomendação: Revisar e corrigir os findings de alta prioridade
 
 4. **ANÁLISE DINÂMICA (DAST)**
-   - OWASP ZAP identificou 35 alertas totais (Baseline Scan: 23 alertas, Active Scan: 12 alertas)
+   - OWASP ZAP identificou 32 alertas totais (Baseline Scan: 19 alertas, Active Scan: 13 alertas)
    - Vulnerabilidades web detectadas incluem headers ausentes, cookies inseguros, etc.
    - Active Scan permite detecção de SQLi, XSS e outras vulnerabilidades de injeção
 
@@ -580,10 +923,10 @@ As seguintes limitações foram identificadas dinamicamente durante a análise:
 ### Eficácia do Pipeline
 
 **PONTOS FORTES:**
-- ✅ Detecção automatizada de 1678 vulnerabilidades/issues
+- ✅ Detecção automatizada de 1747 vulnerabilidades/issues
 - ✅ Execução totalmente integrada ao CI/CD (Cloud Build)
 - ✅ 6 camadas de análise (Container, IaC, SCA, SAST, DAST, Brute Force)
-- ✅ DAST com Active Scan autenticado (12 alertas)
+- ✅ DAST com Active Scan autenticado (13 alertas)
 - ✅ Relatórios estruturados em JSON para análise automatizada
 - ✅ Pipeline sem hardcode (usa substituições do Cloud Build)
 
@@ -596,8 +939,8 @@ As seguintes limitações foram identificadas dinamicamente durante a análise:
 **Não detectadas:** 4 (23.5%)
 
 **Motivos para não detecção:**
-- Requer autenticação e/ou ataque ativo.
 - Requer interação humana ou automação avançada.
+- Requer autenticação e/ou ataque ativo.
 
 ### Recomendações Baseadas nos Resultados
 
@@ -610,4 +953,4 @@ As seguintes limitações foram identificadas dinamicamente durante a análise:
 
 ---
 
-*Relatório gerado automaticamente em 09/02/2026 às 13:01:40*
+*Relatório gerado automaticamente em 09/02/2026 às 15:35:16*
