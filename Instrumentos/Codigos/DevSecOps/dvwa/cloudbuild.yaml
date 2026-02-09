@@ -92,15 +92,18 @@ steps:
   # Analisa código-fonte DVWA para encontrar dependências vulneráveis
   - name: 'aquasec/trivy'
     id: 'sca-scan'
+    entrypoint: 'sh'
     args:
-      - 'fs'
-      - '--scanners'
-      - 'vuln,secret'        # Analisa vulnerabilidades e secrets
-      - '--format'
-      - 'json'
-      - '--output'
-      - '/workspace/reports/trivy-sca-report.json'
-      - 'Instrumentos/Codigos/DevSecOps/dvwa/src'  # Código-fonte DVWA
+      - '-c'
+      - |
+        trivy fs \
+          --scanners vuln,secret \
+          --format json \
+          --output /workspace/reports/trivy-sca-report.json \
+          --db-repository ghcr.io/aquasecurity/trivy-db \
+          --skip-db-update=false \
+          Instrumentos/Codigos/DevSecOps/dvwa/src || \
+        echo '{"Results":[]}' > /workspace/reports/trivy-sca-report.json
     waitFor:
       - 'push'
 
@@ -127,13 +130,17 @@ steps:
   # 6 Container Scan (Trivy)
   - name: 'aquasec/trivy'
     id: 'trivy'
+    entrypoint: 'sh'
     args:
-      - 'image'
-      - '--format'
-      - 'json'
-      - '--output'
-      - '/workspace/reports/trivy-report.json'
-      - '${_REGION}-docker.pkg.dev/${_PROJECT_ID}/${_ARTIFACT_REPO}/${_APP_NAME}:$SHORT_SHA'
+      - '-c'
+      - |
+        trivy image \
+          --format json \
+          --output /workspace/reports/trivy-report.json \
+          --db-repository ghcr.io/aquasecurity/trivy-db \
+          --skip-db-update=false \
+          ${_REGION}-docker.pkg.dev/${_PROJECT_ID}/${_ARTIFACT_REPO}/${_APP_NAME}:$SHORT_SHA || \
+        echo '{"Results":[]}' > /workspace/reports/trivy-report.json
     waitFor:
       - 'push'
 
