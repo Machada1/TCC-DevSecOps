@@ -334,55 +334,49 @@ steps:
         
         docker run --rm -u 0 -v /workspace/reports:/zap/wrk:rw \
           -e T="$$TARGET" -e U="${_DVWA_USER}" -e P="${_DVWA_PASS}" \
-          ghcr.io/zaproxy/zaproxy:stable bash -c '
-          API="http://localhost:8090"
+          ghcr.io/zaproxy/zaproxy:stable bash -c "
+          ZAP=http://localhost:8090
           zap.sh -daemon -port 8090 -config api.disablekey=true &
-          for i in $(seq 1 30); do curl -s "$API/JSON/core/view/version/" >/dev/null && break; sleep 2; done
+          for i in \$$(seq 1 30); do curl -s \$$ZAP/JSON/core/view/version/ >/dev/null && break; sleep 2; done
           
-          # Login e obter sessão
-          CF=/tmp/c.txt; curl -sc $CF "$T/login.php" -o /dev/null
-          TK=$(curl -sb $CF "$T/login.php" | grep -oE "user_token. value=.[^.]+" | sed "s/.*=.//;s/.$//" | head -1)
-          curl -sLcb $CF -d "username=$U&password=$P&Login=Login&user_token=$TK" "$T/login.php" -o /dev/null
-          SID=$(grep PHPSESSID $CF | awk "{print \$NF}")
-          echo "Session: $SID"
+          CF=/tmp/c.txt; curl -sc \$$CF \$$T/login.php -o /dev/null
+          TK=\$$(curl -sb \$$CF \$$T/login.php | grep -oE 'user_token. value=.[^.]+' | sed 's/.*=.//;s/.\$$//' | head -1)
+          curl -sLcb \$$CF -d \"username=\$$U&password=\$$P&Login=Login&user_token=\$$TK\" \$$T/login.php -o /dev/null
+          SID=\$$(grep PHPSESSID \$$CF | awk '{print \$$NF}')
+          echo Session: \$$SID
           
-          # Configurar cookie no ZAP via replacer
-          curl -s "$API/JSON/replacer/action/addRule/?description=auth&enabled=true&matchType=REQ_HEADER&matchRegex=false&matchString=Cookie&replacement=PHPSESSID=$SID;%20security=low&initiators=" -o /dev/null
+          curl -s \"\$$ZAP/JSON/replacer/action/addRule/?description=auth&enabled=true&matchType=REQ_HEADER&matchRegex=false&matchString=Cookie&replacement=PHPSESSID=\$$SID;%20security=low&initiators=\" -o /dev/null
           
-          # Acessar URLs vulneráveis
           for u in /vulnerabilities/sqli/?id=1 /vulnerabilities/xss_r/?name=t /vulnerabilities/exec/?ip=1; do
-            curl -s "$API/JSON/core/action/accessUrl/?url=$T$u&followRedirects=true" -o /dev/null
+            curl -s \"\$$ZAP/JSON/core/action/accessUrl/?url=\$$T\$$u&followRedirects=true\" -o /dev/null
           done
           
-          # Spider
-          curl -s "$API/JSON/spider/action/scan/?url=$T&recurse=true" -o /dev/null
-          for i in $(seq 1 24); do
-            S=$(curl -s "$API/JSON/spider/view/status/?scanId=0" | grep -oP "status...\\K[0-9]+" || echo 0)
-            [ "$S" = "100" ] && break; sleep 5
+          curl -s \$$ZAP/JSON/spider/action/scan/?url=\$$T&recurse=true -o /dev/null
+          for i in \$$(seq 1 24); do
+            ST=\$$(curl -s \$$ZAP/JSON/spider/view/status/?scanId=0 | grep -oP 'status...\\K[0-9]+' || echo 0)
+            [ \"\$$ST\" = \"100\" ] && break; sleep 5
           done
           
-          # Active Scan (10 min max)
-          curl -s "$API/JSON/ascan/action/enableAllScanners/" -o /dev/null
-          curl -s "$API/JSON/ascan/action/scan/?url=$T&recurse=true&inScopeOnly=false" -o /dev/null
-          TIMEOUT=0
-          for i in $(seq 1 60); do
-            S=$(curl -s "$API/JSON/ascan/view/status/?scanId=0" | grep -oP "status...\\K[0-9]+" || echo 0)
-            echo "Active: $S%"
-            [ "$S" = "100" ] && break
+          curl -s \$$ZAP/JSON/ascan/action/enableAllScanners/ -o /dev/null
+          curl -s \"\$$ZAP/JSON/ascan/action/scan/?url=\$$T&recurse=true&inScopeOnly=false\" -o /dev/null
+          TO=0
+          for i in \$$(seq 1 60); do
+            ST=\$$(curl -s \$$ZAP/JSON/ascan/view/status/?scanId=0 | grep -oP 'status...\\K[0-9]+' || echo 0)
+            echo Active: \$$ST%
+            [ \"\$$ST\" = \"100\" ] && break
             sleep 10
-            [ $i -eq 60 ] && TIMEOUT=1
+            [ \$$i -eq 60 ] && TO=1
           done
           
-          # Gerar relatório com flag de timeout
-          ALERTS=$(curl -s "$API/JSON/core/view/alerts/?baseurl=$T&start=0&count=1000")
-          if [ "$TIMEOUT" = "1" ]; then
-            echo "{\"timeout\":true,\"alerts\":$(echo $ALERTS | jq .alerts)}" > /zap/wrk/zap-auth-active-report.json
+          AL=\$$(curl -s \"\$$ZAP/JSON/core/view/alerts/?baseurl=\$$T&start=0&count=1000\")
+          if [ \"\$$TO\" = \"1\" ]; then
+            echo '{\"timeout\":true,\"alerts\":'\$$(echo \$$AL | jq .alerts)'}' > /zap/wrk/zap-auth-active-report.json
           else
-            echo "$ALERTS" > /zap/wrk/zap-auth-active-report.json
+            echo \$$AL > /zap/wrk/zap-auth-active-report.json
           fi
-          curl -s "$API/OTHER/core/other/htmlreport/" > /zap/wrk/zap-auth-active-report.html
-          echo "Alertas: $(curl -s "$API/JSON/core/view/numberOfAlerts/?baseurl=$T")"
-          '
+          curl -s \$$ZAP/OTHER/core/other/htmlreport/ > /zap/wrk/zap-auth-active-report.html
+          echo Alertas: \$$(curl -s \$$ZAP/JSON/core/view/numberOfAlerts/?baseurl=\$$T)
+          "
         ls -la /workspace/reports/zap-auth-* 2>/dev/null || echo "Sem relatorio"
     waitFor:
       - 'zap-scan'
