@@ -1,4 +1,13 @@
-# Divulgação: Apresentação do Projeto
+# 📊 Divulgação: Apresentação do Projeto
 
-Nesta pasta inclua arquivos de slides que foram produzidos para apresentações do projeto e de seus resultados.
+Este diretório é destinado aos slides de apresentação do projeto.
 
+## Conteúdo Esperado
+
+- Slides da defesa do TCC
+- Apresentações para banca
+- Material de apoio visual
+
+## Status
+
+*A ser preenchido após criação das apresentações.*
