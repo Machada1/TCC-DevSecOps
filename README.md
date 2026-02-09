@@ -1,298 +1,371 @@
-# Uma Abordagem DevSecOps para Inserção e Automação de Práticas de Segurança em Pipelines CI/CD
+# 🔐 Uma Abordagem DevSecOps para Inserção e Automação de Práticas de Segurança em Pipelines CI/CD
 
-O objetivo deste projeto é investigar e implementar práticas de segurança em pipelines de Integração Contínua e Entrega Contínua (CI/CD), utilizando os princípios de DevSecOps. A pesquisa busca demonstrar como a automação de verificações de segurança, por meio de ferramentas como SAST, DAST, SCA e IaC scanning, pode ser integrada de forma prática em pipelines CI/CD, garantindo que vulnerabilidades sejam detectadas desde as primeiras etapas do ciclo de desenvolvimento.
+> **Trabalho de Conclusão de Curso (TCC)** | Pontifícia Universidade Católica de Minas Gerais  
+> Curso: Sistemas de Informação | 2025
 
-Além disso, o projeto propõe a utilização de recursos do Google Cloud Platform (GCP), incluindo Cloud Build, Artifact Registry e Google Kubernetes Engine (GKE), provisionados via Terraform, como ambiente controlado para validação da abordagem. A análise dos resultados será qualitativa, focando na efetividade da integração das ferramentas, no nível de automação alcançado e nas boas práticas observadas na implementação de DevSecOps.
+## 📋 Sumário
 
-## Alunos integrantes da equipe
+- [Resumo do Projeto](#-resumo-do-projeto)
+- [Objetivos](#-objetivos)
+- [Fundamentação Teórica](#-fundamentação-teórica)
+- [Glossário de Termos Técnicos](#-glossário-de-termos-técnicos)
+- [Arquitetura da Solução](#-arquitetura-da-solução)
+- [Ferramentas Utilizadas](#-ferramentas-utilizadas)
+- [Pipeline DevSecOps - Explicação Detalhada](#-pipeline-devsecops---explicação-detalhada)
+- [Instruções de Replicação](#-instruções-de-replicação)
+- [Análise de Cobertura](#-análise-de-cobertura)
+- [Resultados Obtidos](#-resultados-obtidos)
+- [Estrutura do Projeto](#-estrutura-do-projeto)
+- [Autor e Orientador](#-autor-e-orientador)
 
-* Guilherme Henrique de Lima Machado
+---
 
-## Professores responsáveis
+## 📖 Resumo do Projeto
 
-* [Lesandro Ponciano](https://orcid.org/0000-0002-5724-0094)
+Este projeto investiga e implementa práticas de segurança em pipelines de **Integração Contínua e Entrega Contínua (CI/CD)**, utilizando os princípios de **DevSecOps**. A pesquisa demonstra como a automação de verificações de segurança pode ser integrada de forma prática em pipelines CI/CD, garantindo que vulnerabilidades sejam detectadas desde as primeiras etapas do ciclo de desenvolvimento.
 
-## Instruções de Replicação/Reprodução
+O projeto utiliza o **DVWA (Damn Vulnerable Web Application)** como aplicação-alvo, uma aplicação web intencionalmente vulnerável amplamente utilizada para treinamento em segurança. A infraestrutura é provisionada via **Terraform** no **Google Cloud Platform (GCP)**, incluindo Cloud Build, Artifact Registry e Google Kubernetes Engine (GKE).
 
-Este projeto pode ser replicado seguindo os passos abaixo:
+### Principais Contribuições
+
+- Implementação de um pipeline CI/CD com **6 ferramentas de segurança** integradas
+- Demonstração prática de **SAST, DAST, SCA e IaC Scanning** automatizados
+- Análise quantitativa e qualitativa da cobertura de detecção de vulnerabilidades
+- Script de análise que compara resultados com vulnerabilidades conhecidas do DVWA
+- Documentação completa para reprodução do experimento
+
+---
+
+## 🎯 Objetivos
+
+### Objetivo Geral
+Demonstrar a viabilidade e efetividade da integração de ferramentas de segurança automatizadas em pipelines CI/CD, seguindo os princípios DevSecOps.
+
+### Objetivos Específicos
+1. Implementar um pipeline CI/CD completo com ferramentas de segurança
+2. Avaliar a cobertura de detecção de vulnerabilidades conhecidas
+3. Identificar limitações e gaps de cada tipo de teste de segurança
+4. Documentar boas práticas para implementação de DevSecOps
+5. Propor melhorias para aumentar a cobertura de segurança
+
+---
+
+## 📚 Fundamentação Teórica
+
+### DevSecOps
+
+**DevSecOps** é uma abordagem que integra práticas de segurança em todas as fases do ciclo de vida do desenvolvimento de software. O termo combina:
+
+- **Dev** (Development): Desenvolvimento de software
+- **Sec** (Security): Segurança da informação
+- **Ops** (Operations): Operações de TI
+
+#### Princípios Fundamentais
+
+| Princípio | Descrição |
+|-----------|-----------|
+| **Shift Left** | Mover testes de segurança para o início do ciclo de desenvolvimento |
+| **Automação** | Automatizar verificações de segurança para execução contínua |
+| **Colaboração** | Integrar equipes de desenvolvimento, segurança e operações |
+| **Feedback Rápido** | Fornecer resultados de segurança em tempo real |
+| **Cultura de Segurança** | Tornar segurança responsabilidade de todos |
+
+### Tipos de Testes de Segurança
+
+| Tipo | Nome Completo | Descrição |
+|------|---------------|-----------|
+| **SAST** | Static Application Security Testing | Análise do código-fonte sem executar a aplicação |
+| **DAST** | Dynamic Application Security Testing | Teste da aplicação em execução, simulando ataques |
+| **SCA** | Software Composition Analysis | Análise de dependências e bibliotecas de terceiros |
+| **IaC Scan** | Infrastructure as Code Scanning | Análise de configurações de infraestrutura |
+
+---
+
+## 📖 Glossário de Termos Técnicos
+
+### Siglas de Segurança
+
+| Sigla | Termo Completo | Descrição |
+|-------|----------------|-----------|
+| **CWE** | Common Weakness Enumeration | Catálogo padronizado de tipos de vulnerabilidades. Ex: CWE-89 (SQL Injection) |
+| **CVE** | Common Vulnerabilities and Exposures | Identificador único para vulnerabilidades conhecidas. Ex: CVE-2021-44228 |
+| **CVSS** | Common Vulnerability Scoring System | Sistema de pontuação de severidade (0-10) |
+| **OWASP** | Open Web Application Security Project | Organização que publica padrões de segurança web |
+| **NVD** | National Vulnerability Database | Base de dados pública de CVEs |
+
+### Termos DevSecOps
+
+| Termo | Descrição |
+|-------|-----------|
+| **Shift Left** | Mover atividades de segurança para o início do desenvolvimento |
+| **Pipeline** | Sequência automatizada de etapas para build, teste e deploy |
+| **Artifact** | Artefato gerado pelo build (imagem Docker, pacote, etc.) |
+| **Container** | Unidade padronizada de software que empacota código e dependências |
+| **Baseline Scan** | Scan passivo que não executa ataques ativos |
+| **Active Scan** | Scan que executa payloads de ataque |
+| **Spider/Crawler** | Componente que navega automaticamente pela aplicação |
+
+### Tipos de Vulnerabilidades
+
+| Vulnerabilidade | CWE | Descrição |
+|-----------------|-----|-----------|
+| **SQL Injection** | CWE-89 | Injeção de comandos SQL maliciosos |
+| **XSS** | CWE-79 | Injeção de scripts no navegador |
+| **Command Injection** | CWE-78 | Injeção de comandos do SO |
+| **CSRF** | CWE-352 | Falsificação de requisições |
+| **File Inclusion** | CWE-98 | Inclusão de arquivos não autorizados |
+| **Brute Force** | CWE-307 | Tentativas repetidas de login |
+| **Hardcoded Credentials** | CWE-798 | Credenciais fixas no código |
+
+### Severidades
+
+| Nível | CVSS | Descrição |
+|-------|------|-----------|
+| **CRITICAL** | 9.0-10.0 | Exploração trivial, impacto severo |
+| **HIGH** | 7.0-8.9 | Exploração possível, impacto significativo |
+| **MEDIUM** | 4.0-6.9 | Requer condições específicas |
+| **LOW** | 0.1-3.9 | Impacto limitado |
+
+---
+
+## 🔧 Ferramentas Utilizadas
+
+### 1. Semgrep (SAST)
+
+| Atributo | Valor |
+|----------|-------|
+| **Categoria** | SAST - Static Application Security Testing |
+| **Função** | Análise estática de código-fonte |
+| **Linguagens** | PHP, JavaScript, Python, Go, Java |
+| **Website** | [semgrep.dev](https://semgrep.dev) |
+
+**O que detecta:** SQL Injection, XSS, Command Injection, Hardcoded Secrets, Eval Injection
+
+**Step no Pipeline:** `semgrep` - Analisa código PHP do DVWA com regras OWASP Top 10
+
+---
+
+### 2. Trivy (SCA + Container Scan)
+
+| Atributo | Valor |
+|----------|-------|
+| **Categoria** | SCA + Container Security |
+| **Função** | Análise de dependências e imagens Docker |
+| **Fabricante** | Aqua Security |
+| **Website** | [trivy.dev](https://trivy.dev) |
+
+**O que detecta:** CVEs em pacotes, OS desatualizado, Secrets expostos, Pacotes vulneráveis
+
+**Steps no Pipeline:**
+- `sca-scan` - Analisa dependências no código-fonte
+- `trivy` - Analisa imagem Docker construída
+
+---
+
+### 3. Checkov (IaC Scan)
+
+| Atributo | Valor |
+|----------|-------|
+| **Categoria** | IaC Security |
+| **Função** | Análise de infraestrutura como código |
+| **Fabricante** | Bridgecrew (Palo Alto) |
+| **Website** | [checkov.io](https://www.checkov.io) |
+
+**O que detecta:** Configurações inseguras em Terraform, Kubernetes, Dockerfiles
+
+**Step no Pipeline:** `checkov` - Analisa Terraform e manifests K8s
+
+---
+
+### 4. OWASP ZAP (DAST)
+
+| Atributo | Valor |
+|----------|-------|
+| **Categoria** | DAST - Dynamic Application Security Testing |
+| **Função** | Testes dinâmicos em aplicação em execução |
+| **Fabricante** | OWASP Foundation |
+| **Website** | [zaproxy.org](https://www.zaproxy.org) |
+
+**O que detecta:** SQL Injection, XSS, CSRF, Headers ausentes, Information Disclosure
+
+**Steps no Pipeline:**
+- `zap-scan` - Baseline scan (passivo)
+- `zap-auth-active-scan` - Active scan autenticado com payloads de ataque
+
+---
+
+### 5. Script de Brute Force (Python)
+
+| Atributo | Valor |
+|----------|-------|
+| **Categoria** | Authentication Testing |
+| **Função** | Teste de força bruta com suporte a CSRF |
+| **Arquivo** | `dvwa-bruteforce.py` |
+| **Baseado em** | [Hydra](https://github.com/vanhauser-thc/thc-hydra) |
+
+**Por que customizado?** O DVWA usa proteção CSRF no login. O **Hydra** é uma das ferramentas mais populares para ataques de força bruta, porém não lida nativamente com tokens CSRF dinâmicos. O script `dvwa-bruteforce.py` foi desenvolvido inspirado na lógica do Hydra, mas com suporte a:
+- Extração automática de tokens CSRF
+- Manutenção de sessão via cookies
+- Parsing de respostas para detectar sucesso/falha
+
+**O que detecta:** CWE-307 (Brute Force), CWE-798 (Default Credentials)
+
+**Step no Pipeline:** `bruteforce-attack`
+
+---
+
+## 🔄 Pipeline DevSecOps - Explicação Detalhada
+
+### Steps do Pipeline
+
+| # | ID | Ferramenta | Descrição |
+|---|-----|------------|-----------|
+| 0 | `setup` | Ubuntu | Cria diretório de relatórios |
+| 1 | `pull-dvwa` | Docker | Pull da imagem DVWA |
+| 2-3 | `push-dvwa`, `push` | Docker | Tag e push para Artifact Registry |
+| 4 | `semgrep` | Semgrep | **SAST** - Análise estática PHP |
+| 5 | `sca-scan` | Trivy | **SCA** - Análise de dependências |
+| 6 | `checkov` | Checkov | **IaC Scan** - Terraform e K8s |
+| 7 | `trivy` | Trivy | **Container Scan** - Imagem Docker |
+| 8-9 | `deploy-mysql`, `deploy` | kubectl | Deploy no GKE |
+| 10 | `get-external-ip` | kubectl | Obtém IP do LoadBalancer |
+| 10.1 | `setup-dvwa` | curl | Configura DVWA (LOW security) |
+| 11 | `zap-scan` | ZAP | **DAST** - Baseline scan |
+| 12 | `zap-auth-active-scan` | ZAP | **DAST** - Active scan autenticado |
+| 13 | `bruteforce-attack` | Python | **Brute Force** - Teste de credenciais |
+| 14 | `upload-reports` | gsutil | Upload relatórios para GCS |
+
+---
+
+## 📖 Instruções de Replicação
 
 ### Requisitos
 
-- Conta no **Google Cloud Platform (GCP)** com permissões para criar:
-  - Projetos, VPCs e sub-redes
-  - Clusters GKE
-  - Artifact Registry
-  - Buckets no Cloud Storage
-  - Cloud Build
-- **Terraform** instalado (>= 1.5)
+- Conta no **Google Cloud Platform (GCP)**
+- **Terraform** >= 1.5
 - **Google Cloud SDK** instalado e autenticado
-- **Docker** instalado para testes locais opcionais
-- Código-fonte ou imagem do **DVWA (Damn Vulnerable Web Application)**
 
-
-### Provisionamento do ambiente com Terraform
-
-1. Navegue até a pasta de infra do projeto:
+### Passo 1: Provisionar Infraestrutura
 
 ```bash
-cd infra
-```
-2. No arquivo `terraform.tfvars` ajuste o project_id para o projeto que será utilizado no gcp.
-
-3. Inicialize o Terraform:
-
-```bash
-terraform init
+cd Instrumentos/Codigos/DevSecOps/infra
+terraform init && terraform apply
 ```
 
-4. Visualize o plano de execução:
-
-```bash
-terraform plan
-```
-
-5. Aplique o Terraform para criar todos os recursos:
-
-```bash
-terraform apply
-```
-
-* Confirme com `yes` quando solicitado.
-* Recursos criados:
-
-  * VPC e sub-redes
-  * Cluster GKE
-  * Artifact Registry
-  * Bucket GCS para relatórios de segurança
-  * IAM binding para permitir que o Cloud Build grave no bucket
-
-6. Verifique os recursos criados:
-
-```bash
-gcloud container clusters list
-gcloud artifacts repositories list
-gsutil ls gs://devsecops-reports
-```
-
-### Preparar a aplicação e Docker(DVWA)
-
-O projeto utiliza a aplicação DVWA (Damn Vulnerable Web Application) como base para testes de segurança.
-O DVWA é uma aplicação web vulnerável escrita em PHP/MySQL, amplamente usada em laboratórios de pentest e DevSecOps, permitindo avaliar a efetividade de ferramentas de varredura em um ambiente controlado.
-
-
-1. O pipeline utilizará a imagem oficial do DVWA disponível no Docker Hub:
-2. (Opcional) Teste build da imagem local:
-
-```bash
-docker pull vulnerables/web-dvwa
-docker run -d -p 8080:80 vulnerables/web-dvwa
-```
-
-* Acesse `http://localhost:8080` para confirmar funcionamento.
-
-
-### Configuração do Cloud Build
-
-1. Verifique o arquivo `cloudbuild.yaml` na pasta `Instrumentos/Codigos/DevSecOps/dvwa/` do projeto.
-2. Ajuste as substituições conforme seu ambiente:
-
-```yaml
-substitutions:
-  _ARTIFACT_REPO: "devsecops-repo"
-  _REGION: "us-central1"
-  _PROJECT_ID: "<SEU_PROJECT_ID>"
-  _CLUSTER_NAME: "devsecops-cluster"
-  _APP_NAME: "dvwa-app"
-  _DEPLOYMENT_NAME: "dvwa-app"
-  _REPORT_BUCKET: "gs://devsecops-reports-dvwa"
-  _SOURCE_IMAGE: "vulnerables/web-dvwa:latest"
-  _DVWA_USER: "admin"
-  _DVWA_PASS: "password"
-```
-
-3. Confirme que a **conta de serviço do Cloud Build** possui permissões:
-
-* Acesso ao GKE
-* Acesso ao Artifact Registry
-* Escrita no bucket GCS
-
-
-### Executar o pipeline
-
-1. Dispare o build no Cloud Build:
+### Passo 2: Executar Pipeline
 
 ```bash
 gcloud builds submit --config Instrumentos/Codigos/DevSecOps/dvwa/cloudbuild.yaml .
 ```
 
-* **Etapas do pipeline (cloudbuild.yaml):**
+### Passo 3: Analisar Cobertura
 
-| Step | ID | Ferramenta | Descrição |
-|------|-----|------------|-----------|
-| 0 | `setup` | Ubuntu | Cria diretório de relatórios |
-| 1 | `pull-dvwa` | Docker | Pull da imagem DVWA pública |
-| 2 | `push-dvwa` | Docker | Tag da imagem para Artifact Registry |
-| 3 | `push` | Docker | Push da imagem para Artifact Registry |
-| 4 | `semgrep` | Semgrep | **SAST** - Análise estática do código PHP do DVWA |
-| 5 | `sca-scan` | Trivy | **SCA** - Análise de dependências do código-fonte |
-| 6 | `checkov` | Checkov | **IaC Scan** - Terraform e Kubernetes |
-| 7 | `trivy` | Trivy | **Container Scan** - Análise da imagem |
-| 8 | `deploy-mysql` | kubectl | Deploy do MySQL no GKE |
-| 9 | `deploy` | kubectl | Deploy do DVWA no GKE |
-| 10 | `get-external-ip` | kubectl | Obtém IP externo do LoadBalancer |
-| 10.1 | `setup-dvwa` | curl | Configura DVWA: inicializa DB e define nível LOW |
-| 11 | `zap-scan` | OWASP ZAP | **DAST** - Baseline Scan (não autenticado) |
-| 12 | `zap-auth-active-scan` | OWASP ZAP | **DAST** - Active Scan autenticado (SQLi, XSS) |
-| 13 | `bruteforce-attack` | Python Script | **Brute Force** - Teste com suporte a CSRF token |
-| 14 | `upload-reports` | gsutil | Upload dos relatórios para GCS |
-| 15 | `get-service-ip` | kubectl | Exibe IP externo do DVWA |
-
-2. Acompanhe logs:
-
-```bash
-gcloud builds list
-gcloud builds log <BUILD_ID >
-```
-
-### Avaliação dos resultados
-
-1. Acesse o bucket GCS para conferir relatórios:
-
-```bash
-gsutil ls gs://devsecops-reports-dvwa/reports-<SHORT_SHA>/
-```
-
-2. **Relatórios gerados por cada ferramenta:**
-
-| Ferramenta | Arquivo | Formato |
-|------------|---------|---------|
-| Semgrep | `semgrep-report.json` | JSON |
-| Trivy (SCA) | `trivy-sca-report.json` | JSON |
-| Trivy (Container) | `trivy-report.json` | JSON |
-| Checkov (Terraform) | `checkov-terraform.json` | JSON |
-| Checkov (K8s) | `checkov-k8s.json` | JSON |
-| Checkov (Combinado) | `checkov-report.json` | JSON |
-| OWASP ZAP | `zap-report.json`, `zap-report.html` | JSON/HTML |
-| ZAP Autenticado | `zap-auth-active-report.json`, `zap-auth-active-report.html` | JSON/HTML |
-| Brute Force | `hydra-bruteforce.json` | JSON |
-
-3. Pontos de análise qualitativa:
-
-* Efetividade da integração das ferramentas no pipeline
-* Nível de automação alcançado na detecção de vulnerabilidades
-* Boas práticas observadas na implementação de DevSecOps
-* Detecção e mitigação de vulnerabilidades em cada etapa do pipeline
-
-4. Repita o build sempre que desejar testar alterações na aplicação ou na configuração do pipeline. Cada build gera um novo diretório no bucket para manter histórico completo.
-
-
-### Script de Análise de Cobertura (`analise.py`)
-
-O projeto inclui um script Python (`Instrumentos/Reports/analise.py`) que realiza a análise automática dos relatórios gerados pelo pipeline, comparando-os com as vulnerabilidades conhecidas do DVWA.
-
-**Funcionalidades:**
-- Carrega e processa todos os relatórios JSON gerados pelas ferramentas
-- Mapeia vulnerabilidades detectadas para as categorias conhecidas do DVWA
-- Calcula cobertura de detecção por ferramenta e categoria
-- Identifica gaps (vulnerabilidades não detectadas)
-- **Valida cobertura do ZAP Active Scan** (CWEs detectados vs esperados)
-- **Detecta limitações dinamicamente** (código-fonte ausente, falhas de autenticação, etc.)
-- Gera sugestões de melhoria para o pipeline
-
-**Execução:**
 ```bash
 cd Instrumentos/Reports/
 python analise.py
+cat relatorio-vulnerabilidades.md
 ```
 
-**Saída:**
-- `relatorio-vulnerabilidades.md` - Relatório consolidado em Markdown com:
-  - Resumo executivo
-  - Análise por ferramenta (Trivy, Semgrep, Checkov, ZAP, Hydra)
-  - Cobertura das vulnerabilidades do DVWA
-  - Matriz de detecção (vulnerabilidade × ferramenta)
-  - **Validação da cobertura do ZAP Active Scan**
-  - **Limitações identificadas na análise**
-  - Recomendações para aumentar cobertura
+---
 
-**Vulnerabilidades DVWA mapeadas:**
-- SQL Injection, XSS (Reflected/Stored/DOM), Command Injection
-- File Inclusion (LFI/RFI), File Upload, CSRF
-- Weak Session IDs, Brute Force, Insecure CAPTCHA
-- Open HTTP Redirect, JavaScript Attacks, CSP Bypass, Authorization Bypass
+## 📊 Análise de Cobertura
 
+### Cobertura Geral: **76.5% (13/17)**
 
-### Código-Fonte do DVWA
+| Status | Vulnerabilidade | CWE | Ferramenta |
+|--------|-----------------|-----|------------|
+| ✅ | SQL Injection | CWE-89 | ZAP Active Scan |
+| ✅ | XSS | CWE-79 | Semgrep |
+| ✅ | Command Injection | CWE-78 | Semgrep |
+| ✅ | CSRF | CWE-352 | Trivy |
+| ✅ | Brute Force | CWE-307 | Script Brute Force |
+| ✅ | JavaScript Attacks | CWE-749 | Semgrep |
+| ✅ | CSP Bypass | CWE-693 | ZAP |
+| ✅ | Default Credentials | CWE-798 | Script Brute Force |
+| ✅ | Outdated OS | CWE-1104 | Trivy |
+| ⚠️ | File Inclusion | CWE-98 | Fora do escopo |
+| ⚠️ | File Upload | CWE-434 | Fora do escopo |
+| ⚠️ | Insecure CAPTCHA | CWE-804 | Fora do escopo |
+| ⚠️ | Auth Bypass | CWE-639 | Fora do escopo |
 
-O repositório inclui o código-fonte do DVWA em `Instrumentos/Codigos/DevSecOps/dvwa/src/` para permitir análise SAST e SCA completa:
+### Cobertura Ajustada (Escopo Automatizável): **100% (13/13)**
 
-- **Semgrep** analisa o código PHP com regras específicas (`p/php`, `p/security-audit`, `p/owasp-top-ten`)
-- **Trivy SCA** analisa dependências e secrets no código-fonte
-- O código-fonte foi obtido do repositório oficial: https://github.com/digininja/DVWA
+Considerando apenas vulnerabilidades passíveis de detecção automatizada em pipelines CI/CD, a cobertura é de **100%**.
 
+---
 
-### Observações
+### ⚠️ Vulnerabilidades Fora do Escopo
 
-* O ambiente é totalmente **provisionado via Terraform**, garantindo reprodutibilidade.
-* Todos os relatórios ficam armazenados em **bucket GCS**, permitindo auditoria e rastreabilidade.
-* As ferramentas de segurança estão configuradas para gerar evidências de vulnerabilidades em cada etapa do pipeline, de forma automatizada.
-* O uso do DVWA proporciona um ambiente intencionalmente vulnerável, permitindo observar de forma prática o funcionamento e a precisão das ferramentas automatizadas de segurança.
-* **Variáveis de shell** nos scripts do Cloud Build usam `$$` para escapar e evitar conflitos com substituições do Cloud Build.
-* O **IP externo** do DVWA é obtido dinamicamente e propagado via arquivo `/workspace/external_ip.txt`, não por substituição.
+As seguintes vulnerabilidades do DVWA **não são detectáveis** por ferramentas automatizadas em pipelines CI/CD devido à sua natureza:
 
+| Vulnerabilidade | CWE | Motivo da Exclusão |
+|-----------------|-----|--------------------|
+| **File Inclusion (LFI/RFI)** | CWE-98 | Requer interação manual para navegar por diretórios e testar payloads específicos de inclusão de arquivos |
+| **File Upload** | CWE-434 | Requer upload real de arquivos maliciosos e verificação de execução no servidor |
+| **Insecure CAPTCHA** | CWE-804 | CAPTCHA é projetado para impedir automação; testar sua fraqueza requer análise humana |
+| **Authorisation Bypass** | CWE-639 | Requer entendimento da lógica de negócio e testes com múltiplos usuários/sessões |
 
-### Nota sobre Brute Force
+**Importante:** Essas vulnerabilidades existem no DVWA e são exploráveis, porém sua detecção requer:
+- Testes manuais de penetração (pentest)
+- Ferramentas interativas (Burp Suite manual, etc.)
+- Conhecimento da lógica de negócio da aplicação
 
-O projeto utiliza um **script Python customizado** (`dvwa-bruteforce.py`) ao invés do Hydra tradicional. Isso é necessário porque:
+Isso demonstra uma **limitação inerente** de pipelines DevSecOps automatizados: nem todas as vulnerabilidades podem ser detectadas sem intervenção humana.
 
-1. O DVWA implementa proteção **CSRF** no formulário de login
-2. Cada requisição requer um token `user_token` gerado dinamicamente
-3. Ferramentas como Hydra não conseguem lidar nativamente com tokens CSRF
+---
 
-O script customizado:
-- Obtém o token CSRF de cada página antes de cada tentativa
-- Testa combinações de usuários/senhas comuns
-- Detecta CWE-307 (Brute Force) e CWE-798 (Default Credentials)
-- Gera relatório JSON estruturado para análise automatizada
+## 📈 Resultados Obtidos
 
+| Ferramenta | Findings | Críticos | Altos |
+|------------|----------|----------|-------|
+| Trivy (Container) | 1575 | 254 | 551 |
+| Semgrep | 77 | 51 | 26 |
+| Checkov | 63 | - | - |
+| OWASP ZAP | 32 | 1 | 6 |
+| Brute Force | 1 | 1 | - |
 
-## Estrutura do Projeto
+---
+
+## 📁 Estrutura do Projeto
 
 ```
-├── Artigo/                          # Artigo e pré-projeto da pesquisa
-├── Divulgacao/                      # Apresentação e vídeo
-├── Fichamentos/                     # Fichamentos de artigos relacionados
+├── Artigo/                    # Artigo e pré-projeto
+├── Fichamentos/               # Fichamentos de artigos
 ├── Instrumentos/
-│   ├── Codigos/
-│   │   └── DevSecOps/
-│   │       ├── dvwa/
-│   │       │   ├── cloudbuild.yaml  # Pipeline CI/CD principal
-│   │       │   ├── src/             # Código-fonte do DVWA (para SAST/SCA)
-│   │       │   └── k8s/             # Manifests Kubernetes (DVWA, MySQL)
-│   │       ├── dvwa-bruteforce.py   # Script de brute force com CSRF
-│   │       └── infra/               # Terraform (GKE, VPC, IAM, etc.)
+│   ├── Codigos/DevSecOps/
+│   │   ├── dvwa/
+│   │   │   ├── cloudbuild.yaml  # Pipeline principal
+│   │   │   ├── src/             # Código-fonte DVWA
+│   │   │   └── k8s/             # Manifests Kubernetes
+│   │   ├── infra/               # Terraform (GCP)
+│   │   └── dvwa-bruteforce.py   # Script brute force
 │   └── Reports/
-│       ├── analise.py               # Script de análise de cobertura
-│       ├── relatorio-vulnerabilidades.md  # Relatório consolidado
-│       └── *.json                   # Relatórios das ferramentas
-├── Memorial/                        # Memorial do projeto
-└── README.md                        # Este arquivo
+│       ├── analise.py           # Script de análise
+│       └── *.json               # Relatórios das ferramentas
+└── README.md
 ```
 
+---
 
-## Ferramentas Utilizadas
+## 👤 Autor e Orientador
 
-| Categoria | Ferramenta | Descrição |
-|-----------|------------|-----------|
-| **SAST** | Semgrep | Análise estática de código PHP (regras OWASP Top 10) |
-| **SCA** | Trivy | Análise de dependências e secrets no código-fonte |
-| **Container Scan** | Trivy | Análise de vulnerabilidades em imagens Docker |
-| **IaC Scan** | Checkov | Análise de infraestrutura como código (Terraform, K8s) |
-| **DAST** | OWASP ZAP | Testes dinâmicos de segurança (baseline e active scan autenticado) |
-| **Brute Force** | Python (Custom) | Testes de força bruta com suporte a CSRF token |
-| **Infra** | Terraform | Provisionamento de infraestrutura no GCP |
-| **CI/CD** | Cloud Build | Pipeline de integração e entrega contínua |
-| **Container** | GKE | Orquestração de containers Kubernetes |
-| **Análise** | Python | Script de análise, validação e geração de relatórios |
+**Autor:** Guilherme Henrique de Lima Machado  
+**Orientador:** Prof. Lesandro Ponciano ([ORCID](https://orcid.org/0000-0002-5724-0094))
 
+---
 
+## 📚 Referências
+
+- [OWASP DevSecOps Guideline](https://owasp.org/www-project-devsecops-guideline/)
+- [CWE - Common Weakness Enumeration](https://cwe.mitre.org/)
+- [DVWA - Damn Vulnerable Web Application](https://github.com/digininja/DVWA)
+- [Semgrep Docs](https://semgrep.dev/docs/)
+- [Trivy Docs](https://aquasecurity.github.io/trivy/)
+- [OWASP ZAP Docs](https://www.zaproxy.org/docs/)
+
+---
+
+<div align="center">
+<b>PUC Minas | 2025</b><br>
+<i>Trabalho de Conclusão de Curso - Sistemas de Informação</i>
+</div>

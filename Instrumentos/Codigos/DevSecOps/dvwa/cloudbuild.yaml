@@ -268,13 +268,36 @@ steps:
           -d "security=low&seclev_submit=Submit&user_token=$$SEC_TOKEN" \
           "$$TARGET/security.php" -o /dev/null
         
-        # Verificar configuração
-        VERIFY=$$(curl -s -b "$$COOKIE_FILE" "$$TARGET/security.php")
-        if echo "$$VERIFY" | grep -q "selected.*low\|low.*selected"; then
-          echo "✅ DVWA configurado para nível LOW"
-        else
-          echo "⚠️ Não foi possível confirmar nível LOW"
-        fi
+        # Verificar configuração - tenta múltiplas vezes
+        echo "=== Verificando configuração ==="
+        for attempt in 1 2 3; do
+          sleep 2
+          VERIFY=$$(curl -s -b "$$COOKIE_FILE" "$$TARGET/security.php")
+          
+          # Verificar se "low" está selecionado (vários padrões possíveis)
+          if echo "$$VERIFY" | grep -qi "option value=.low.*selected\|selected.*value=.low\|value=\"low\" selected"; then
+            echo "✅ DVWA configurado para nível LOW (verificado)"
+            break
+          fi
+          
+          # Verificar pelo cookie de segurança também
+          SECURITY_COOKIE=$$(grep -i "security" "$$COOKIE_FILE" 2>/dev/null | grep -o "low" || true)
+          if [ "$$SECURITY_COOKIE" = "low" ]; then
+            echo "✅ DVWA configurado para nível LOW (via cookie)"
+            break
+          fi
+          
+          # Se não confirmou, tentar configurar novamente
+          if [ $$attempt -lt 3 ]; then
+            echo "Tentativa $$attempt: Não confirmado, tentando novamente..."
+            curl -s -b "$$COOKIE_FILE" \
+              -d "security=low&seclev_submit=Submit&user_token=$$SEC_TOKEN" \
+              "$$TARGET/security.php" -o /dev/null
+          else
+            echo "⚠️ Não foi possível confirmar nível LOW após 3 tentativas"
+            echo "HTML snippet: $$(echo \"$$VERIFY\" | grep -i 'option.*low' | head -2)"
+          fi
+        done
         
         echo "=== Setup do DVWA concluído ==="
     waitFor:

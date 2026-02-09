@@ -18,6 +18,32 @@ from pathlib import Path
 # VULNERABILIDADES CONHECIDAS DO DVWA
 # Referência: https://github.com/digininja/DVWA
 # ============================================================================
+
+# Vulnerabilidades que estão FORA DO ESCOPO de pipelines CI/CD automatizados
+# Estas requerem interação manual, pentest ou análise humana para detecção
+OUT_OF_SCOPE_VULNERABILITIES = {
+    "File Inclusion (LFI/RFI)": {
+        "cwe": "CWE-98",
+        "reason": "Requer navegação manual por diretórios e payloads específicos de inclusão de arquivos",
+        "alternative": "Pentest manual ou IAST (Interactive Application Security Testing)"
+    },
+    "File Upload": {
+        "cwe": "CWE-434",
+        "reason": "Requer upload real de arquivos maliciosos e verificação de execução no servidor",
+        "alternative": "Pentest manual com upload de webshells"
+    },
+    "Insecure CAPTCHA": {
+        "cwe": "CWE-804",
+        "reason": "CAPTCHA é projetado para impedir automação; testar sua fraqueza requer análise humana",
+        "alternative": "Análise manual do mecanismo de CAPTCHA"
+    },
+    "Authorisation Bypass": {
+        "cwe": "CWE-639",
+        "reason": "Requer entendimento da lógica de negócio e testes com múltiplos usuários/sessões",
+        "alternative": "Testes manuais de controle de acesso com diferentes perfis"
+    }
+}
+
 DVWA_KNOWN_VULNERABILITIES = {
     "web_application": {
         "SQL Injection": {
@@ -892,6 +918,15 @@ def compare_with_known_vulnerabilities(trivy_analysis, semgrep_analysis, zap_ana
                     norm_cwe = cwe.split(':')[0] if ':' in cwe else cwe
                     detected_cwes.add(norm_cwe)
                     cwe_to_tool[norm_cwe] = 'Semgrep'
+            
+            # Detectar CWE-749 (JavaScript Attacks) quando Semgrep encontrar
+            # vulnerabilidades em arquivos no diretório javascript/ do DVWA
+            # Isso inclui eval, document.write, innerHTML e outros problemas de JS client-side
+            file_path = f.get('file', '')
+            if '/javascript/' in file_path or 'javascript/' in file_path:
+                if file_path.endswith('.js') or file_path.endswith('.php'):
+                    detected_cwes.add('CWE-749')
+                    cwe_to_tool['CWE-749'] = 'Semgrep (JavaScript Analysis)'
 
     # ZAP Baseline
     if zap_analysis and 'by_cwe' in zap_analysis:
@@ -1001,6 +1036,23 @@ def compare_with_known_vulnerabilities(trivy_analysis, semgrep_analysis, zap_ana
         entry['motivo'] = motivo
         entry['sugestao'] = sugestao
         entry['ferramenta'] = ferramenta if ferramenta != '-' else entry.get('ferramenta', '-')
+        # Marcar se está fora do escopo
+        entry['out_of_scope'] = entry['name'] in OUT_OF_SCOPE_VULNERABILITIES
+        if entry['out_of_scope']:
+            oos_info = OUT_OF_SCOPE_VULNERABILITIES[entry['name']]
+            entry['out_of_scope_reason'] = oos_info['reason']
+            entry['out_of_scope_alternative'] = oos_info['alternative']
+    
+    # Calcular total e score ajustado (sem vulnerabilidades fora do escopo)
+    total = len(coverage['detected']) + len(coverage['not_detected'])
+    coverage['total'] = total
+    out_of_scope_count = sum(1 for e in coverage['not_detected'] if e.get('out_of_scope', False))
+    total_in_scope = total - out_of_scope_count
+    coverage['out_of_scope_count'] = out_of_scope_count
+    coverage['total_in_scope'] = total_in_scope
+    coverage['detected_in_scope'] = len(coverage['detected'])  # Todas detectadas estão no escopo
+    coverage['coverage_adjusted'] = (coverage['detected_in_scope'] / total_in_scope * 100) if total_in_scope > 0 else 0
+    
     return coverage
 
 
@@ -1428,6 +1480,10 @@ def generate_report():
     # Seção de análise de cobertura agora é apenas um sumário dinâmico
     total = len(coverage['detected']) + len(coverage['not_detected'])
     pct = (len(coverage['detected']) / total * 100) if total > 0 else 0
+    pct_adjusted = coverage.get('coverage_adjusted', 0)
+    total_in_scope = coverage.get('total_in_scope', total)
+    out_of_scope_count = coverage.get('out_of_scope_count', 0)
+    
     report.add_header("Resumo da Cobertura", 3)
     
     # Avaliação qualitativa baseada na porcentagem
@@ -1447,14 +1503,39 @@ def generate_report():
     report.add(f"**Avaliação:** {qualidade}")
     report.add()
     
-    if coverage['not_detected']:
-        report.add("Principais motivos para não detecção:")
-        motivos = set(v['motivo'] for v in coverage['not_detected'])
-        for m in motivos:
-            report.add(f"- {m}")
+    # Score ajustado (sem vulnerabilidades fora do escopo)
+    report.add_header("Cobertura Ajustada (Escopo Automatizável)", 4)
+    report.add(f"Cobertura considerando apenas vulnerabilidades detectáveis por automação: **{len(coverage['detected'])}/{total_in_scope}** (**{pct_adjusted:.1f}%**)")
+    report.add()
+    report.add(f"*{out_of_scope_count} vulnerabilidades estão fora do escopo de pipelines CI/CD automatizados.*")
+    report.add()
+    
+    # Seção de vulnerabilidades fora do escopo
+    if out_of_scope_count > 0:
+        report.add_header("⚠️ Vulnerabilidades Fora do Escopo de Automação", 4)
+        report.add("As seguintes vulnerabilidades do DVWA **não são detectáveis** por ferramentas automatizadas em pipelines CI/CD:")
+        report.add()
+        
+        out_of_scope_entries = [e for e in coverage['not_detected'] if e.get('out_of_scope', False)]
+        if out_of_scope_entries:
+            report.add_table(
+                ["Vulnerabilidade", "CWE", "Motivo", "Alternativa"],
+                [[e['name'], e['cwe'], e.get('out_of_scope_reason', '-'), e.get('out_of_scope_alternative', '-')] for e in out_of_scope_entries]
+            )
+            report.add()
+        
+        report.add("**Importante:** Essas vulnerabilidades existem no DVWA e são exploráveis, porém sua detecção requer testes manuais de penetração (pentest), ferramentas interativas ou conhecimento da lógica de negócio da aplicação. Isso demonstra uma **limitação inerente** de pipelines DevSecOps automatizados.")
+        report.add()
+    
+    # Vulnerabilidades não detectadas que ESTÃO no escopo
+    not_detected_in_scope = [e for e in coverage['not_detected'] if not e.get('out_of_scope', False)]
+    if not_detected_in_scope:
+        report.add("Vulnerabilidades no escopo mas não detectadas:")
+        for v in not_detected_in_scope:
+            report.add(f"- **{v['name']}** ({v['cwe']}): {v['motivo']}")
         report.add()
         report.add("Sugestões para aumentar a cobertura:")
-        sugestoes = set(v['sugestao'] for v in coverage['not_detected'] if v['sugestao'] and v['sugestao'] != '-')
+        sugestoes = set(v['sugestao'] for v in not_detected_in_scope if v['sugestao'] and v['sugestao'] != '-')
         for s in sugestoes:
             report.add(f"- {s}")
         report.add()
