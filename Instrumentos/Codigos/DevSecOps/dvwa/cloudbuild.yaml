@@ -321,8 +321,7 @@ steps:
     waitFor:
       - 'setup-dvwa'
 
-  # 11 ZAP autenticado + active scan (usando docker run com root para ter permissão de escrita)
-  # CORREÇÃO: Configurar sessão HTTP no ZAP para manter autenticação durante o scan
+  # 11 ZAP autenticado + active scan com sessão HTTP configurada
   - name: 'gcr.io/cloud-builders/docker'
     id: 'zap-auth-active-scan'
     entrypoint: 'bash'
@@ -330,249 +329,61 @@ steps:
       - -c
       - |
         EXTERNAL_IP=$$(cat /workspace/external_ip.txt)
-        if [ "$$EXTERNAL_IP" = "UNAVAILABLE" ]; then
-          echo "ERRO: IP externo não disponível, pulando ZAP autenticado"
-          echo '{"error": "IP externo não disponível"}' > /workspace/reports/zap-auth-active-report.json
-          exit 0
-        fi
+        [ "$$EXTERNAL_IP" = "UNAVAILABLE" ] && echo '{"error":"IP indisponivel"}' > /workspace/reports/zap-auth-active-report.json && exit 0
+        TARGET="http://$$EXTERNAL_IP"
         
-        TARGET_URL="http://$$EXTERNAL_IP"
-        
-        echo "=== Iniciando ZAP Active Scan Autenticado ==="
-        echo "Alvo: $$TARGET_URL"
-        
-        # Executa ZAP via docker com usuário root (-u 0)
-        # TODAS as variáveis dentro do bash -c precisam de $$ para escapar do Cloud Build
-        docker run --rm \
-          -u 0 \
-          -v /workspace/reports:/zap/wrk:rw \
-          -e TARGET_URL="$$TARGET_URL" \
-          -e EXTERNAL_IP="$$EXTERNAL_IP" \
-          -e DVWA_USER="${_DVWA_USER}" \
-          -e DVWA_PASS="${_DVWA_PASS}" \
-          ghcr.io/zaproxy/zaproxy:stable \
-          bash -c '
-            ZAP_API="http://localhost:8090"
-            
-            echo "=== Iniciando ZAP daemon ==="
-            zap.sh -daemon -port 8090 -host 0.0.0.0 -config api.disablekey=true &
-            
-            echo "Aguardando ZAP iniciar..."
-            for i in $$(seq 1 60); do
-              if curl -s "$$ZAP_API/JSON/core/view/version/" > /dev/null 2>&1; then
-                echo "ZAP iniciado!"
-                break
-              fi
-              sleep 2
-            done
-            
-            ZAP_VERSION=$$(curl -s "$$ZAP_API/JSON/core/view/version/" 2>/dev/null || echo "erro")
-            echo "ZAP: $$ZAP_VERSION"
-            
-            if echo "$$ZAP_VERSION" | grep -q "erro"; then
-              echo "{\"error\": \"ZAP nao iniciou\"}" > /zap/wrk/zap-auth-active-report.json
-              exit 0
-            fi
-            
-            # ================================================================
-            # PASSO 1: Criar contexto e configurar autenticação no ZAP
-            # ================================================================
-            echo "=== Criando Contexto no ZAP ==="
-            
-            # Criar um novo contexto
-            CONTEXT_RESP=$$(curl -s "$$ZAP_API/JSON/context/action/newContext/?contextName=DVWA")
-            echo "Contexto criado: $$CONTEXT_RESP"
-            
-            # Incluir o site no contexto
-            curl -s "$$ZAP_API/JSON/context/action/includeInContext/?contextName=DVWA&regex=$$TARGET_URL.*" -o /dev/null
-            
-            # ================================================================
-            # PASSO 2: Fazer login via ZAP (não via curl externo)
-            # ================================================================
-            echo "=== Configurando Autenticação no ZAP ==="
-            
-            # Primeiro, acessar a página de login pelo ZAP para obter o cookie de sessão
-            curl -s "$$ZAP_API/JSON/core/action/accessUrl/?url=$$TARGET_URL/login.php&followRedirects=true" -o /dev/null
-            sleep 2
-            
-            # Obter página de login para extrair CSRF token
-            LOGIN_PAGE=$$(curl -s "$$TARGET_URL/login.php")
-            CSRF_TOKEN=$$(echo "$$LOGIN_PAGE" | grep -oE "user_token. value=.[^.]+" | head -1 | sed "s/.*value=.//;s/.$$//")
-            echo "CSRF Token: $$CSRF_TOKEN"
-            
-            # Configurar autenticação Form-Based no ZAP
-            # O ZAP precisa saber como fazer login
-            LOGIN_URL="$$TARGET_URL/login.php"
-            LOGIN_DATA="username={%username%}&password={%password%}&Login=Login&user_token=$$CSRF_TOKEN"
-            
-            # Usar autenticação via HTTP/HTTPS Session
-            # Fazer o login diretamente pelo ZAP usando sendRequest
-            echo "=== Fazendo Login pelo ZAP ==="
-            
-            # Primeiro GET para obter cookies
-            curl -s "$$ZAP_API/JSON/core/action/accessUrl/?url=$$TARGET_URL/login.php" -o /dev/null
-            sleep 1
-            
-            # Obter o token CSRF atualizado via ZAP
-            RESPONSE=$$(curl -s "$$ZAP_API/JSON/core/view/messages/?baseurl=$$TARGET_URL&start=0&count=1")
-            
-            # Fazer POST de login diretamente pelo ZAP (usando script automation)
-            # Alternativa: usar forcedUser
-            
-            # Criar usuário no contexto
-            echo "=== Criando Usuário no Contexto ==="
-            curl -s "$$ZAP_API/JSON/users/action/newUser/?contextId=1&name=admin" -o /dev/null
-            
-            # Configurar credenciais
-            AUTH_CREDS="username=$$DVWA_USER&password=$$DVWA_PASS"
-            curl -s "$$ZAP_API/JSON/users/action/setAuthenticationCredentials/?contextId=1&userId=0&authCredentialsConfigParams=$$AUTH_CREDS" -o /dev/null
-            
-            # Habilitar usuário
-            curl -s "$$ZAP_API/JSON/users/action/setUserEnabled/?contextId=1&userId=0&enabled=true" -o /dev/null
-            
-            # ================================================================
-            # PASSO 3: Fazer login manualmente e configurar sessão no ZAP
-            # ================================================================
-            echo "=== Obtendo Sessão Autenticada ==="
-            
-            # Fazer login via curl e capturar PHPSESSID
-            COOKIE_FILE="/tmp/cookies.txt"
-            curl -s -c "$$COOKIE_FILE" "$$TARGET_URL/login.php" -o /dev/null
-            
-            LOGIN_PAGE=$$(curl -s -b "$$COOKIE_FILE" "$$TARGET_URL/login.php")
-            CSRF_TOKEN=$$(echo "$$LOGIN_PAGE" | grep -oE "user_token. value=.[^.]+" | head -1 | sed "s/.*value=.//;s/.$$//")
-            
-            curl -s -L -c "$$COOKIE_FILE" -b "$$COOKIE_FILE" \
-              -d "username=$$DVWA_USER&password=$$DVWA_PASS&Login=Login&user_token=$$CSRF_TOKEN" \
-              "$$TARGET_URL/login.php" -o /dev/null
-            
-            # Extrair PHPSESSID do cookie file
-            PHPSESSID=$$(grep PHPSESSID "$$COOKIE_FILE" | awk "{print \$$NF}")
-            echo "PHPSESSID: $$PHPSESSID"
-            
-            # Configurar o cookie de sessão no ZAP
-            # Isso é feito adicionando um header HTTP customizado
-            echo "=== Configurando Cookie de Sessão no ZAP ==="
-            curl -s "$$ZAP_API/JSON/script/action/enable/?scriptName=Add%20Header" -o /dev/null 2>/dev/null || true
-            
-            # Adicionar replacer para injetar cookie em todas as requisições
-            curl -s "$$ZAP_API/JSON/replacer/action/addRule/?description=PHPSESSID&enabled=true&matchType=REQ_HEADER&matchRegex=false&matchString=Cookie&replacement=PHPSESSID=$$PHPSESSID;%20security=low&initiators=" -o /dev/null
-            
-            echo "Cookie de sessão configurado no ZAP"
-            
-            # ================================================================
-            # PASSO 4: Acessar URLs vulneráveis com sessão
-            # ================================================================
-            echo "=== Acessando URLs vulneráveis do DVWA ==="
-            VULN_URLS="
-              /vulnerabilities/sqli/?id=1&Submit=Submit
-              /vulnerabilities/sqli_blind/?id=1&Submit=Submit
-              /vulnerabilities/xss_r/?name=test
-              /vulnerabilities/xss_s/
-              /vulnerabilities/exec/?ip=127.0.0.1&Submit=Submit
-              /vulnerabilities/fi/?page=include.php
-              /vulnerabilities/upload/
-              /vulnerabilities/csrf/
-              /vulnerabilities/brute/
-              /vulnerabilities/captcha/
-              /vulnerabilities/weak_id/
-            "
-            
-            for url in $$VULN_URLS; do
-              echo "Acessando: $$TARGET_URL$$url"
-              # Agora o ZAP vai usar o cookie configurado via replacer
-              curl -s "$$ZAP_API/JSON/core/action/accessUrl/?url=$$TARGET_URL$$url&followRedirects=true" -o /dev/null
-              sleep 1
-            done
-            
-            # ================================================================
-            # PASSO 5: Spider com sessão
-            # ================================================================
-            echo "=== Executando Spider ==="
-            SPIDER_RESP=$$(curl -s "$$ZAP_API/JSON/spider/action/scan/?url=$$TARGET_URL&recurse=true&contextName=DVWA")
-            SPIDER_ID=$$(echo "$$SPIDER_RESP" | grep -oP "\"scan\":\"\\K[0-9]+" || echo "")
-            echo "Spider ID: $$SPIDER_ID"
-            
-            if [ -n "$$SPIDER_ID" ]; then
-              for i in $$(seq 1 36); do
-                STATUS=$$(curl -s "$$ZAP_API/JSON/spider/view/status/?scanId=$$SPIDER_ID" | grep -oP "\"status\":\"\\K[0-9]+" || echo "0")
-                echo "Spider: $$STATUS%"
-                [ "$$STATUS" = "100" ] && break
-                sleep 5
-              done
-            fi
-            
-            # ================================================================
-            # PASSO 6: Active Scan (o mais importante!)
-            # ================================================================
-            echo "=== Executando Active Scan ==="
-            
-            # Verificar status dos plugins de ataque
-            echo "Verificando plugins de SQL Injection e XSS..."
-            curl -s "$$ZAP_API/JSON/ascan/view/scanners/?policyId=" | grep -E "40018|40019|40012|40014" | head -5
-            
-            # Configurar política para habilitar todos os ataques
-            curl -s "$$ZAP_API/JSON/ascan/action/enableAllScanners/?scanPolicyName=" -o /dev/null
-            
-            # Iniciar Active Scan com contexto
-            ASCAN_RESP=$$(curl -s "$$ZAP_API/JSON/ascan/action/scan/?url=$$TARGET_URL&recurse=true&inScopeOnly=false&contextName=DVWA")
-            ASCAN_ID=$$(echo "$$ASCAN_RESP" | grep -oP "\"scan\":\"\\K[0-9]+" || echo "")
-            echo "Active Scan ID: $$ASCAN_ID"
-            echo "Active Scan Response: $$ASCAN_RESP"
-            
-            if [ -n "$$ASCAN_ID" ]; then
-              # Aguardar mais tempo (até 20 minutos) para Active Scan completo
-              for i in $$(seq 1 120); do
-                STATUS=$$(curl -s "$$ZAP_API/JSON/ascan/view/status/?scanId=$$ASCAN_ID" | grep -oP "\"status\":\"\\K[0-9]+" || echo "0")
-                echo "Active Scan: $$STATUS%"
-                [ "$$STATUS" = "100" ] && break
-                sleep 10
-              done
-            else
-              echo "ERRO: Active Scan não iniciou!"
-              echo "Tentando scan sem contexto..."
-              ASCAN_RESP=$$(curl -s "$$ZAP_API/JSON/ascan/action/scan/?url=$$TARGET_URL&recurse=true&inScopeOnly=false")
-              ASCAN_ID=$$(echo "$$ASCAN_RESP" | grep -oP "\"scan\":\"\\K[0-9]+" || echo "")
-              echo "Active Scan ID (retry): $$ASCAN_ID"
-              
-              if [ -n "$$ASCAN_ID" ]; then
-                for i in $$(seq 1 60); do
-                  STATUS=$$(curl -s "$$ZAP_API/JSON/ascan/view/status/?scanId=$$ASCAN_ID" | grep -oP "\"status\":\"\\K[0-9]+" || echo "0")
-                  echo "Active Scan: $$STATUS%"
-                  [ "$$STATUS" = "100" ] && break
-                  sleep 10
-                done
-              fi
-            fi
-            
-            # ================================================================
-            # PASSO 7: Gerar Relatórios
-            # ================================================================
-            echo "=== Gerando Relatórios ==="
-            curl -s "$$ZAP_API/JSON/core/view/alerts/?baseurl=$$TARGET_URL&start=0&count=1000" > /zap/wrk/zap-auth-active-report.json
-            curl -s "$$ZAP_API/OTHER/core/other/htmlreport/" > /zap/wrk/zap-auth-active-report.html
-            
-            echo "=== Resumo ==="
-            ALERTS=$$(curl -s "$$ZAP_API/JSON/core/view/numberOfAlerts/?baseurl=$$TARGET_URL" | grep -oP "\"numberOfAlerts\":\"\\K[0-9]+" || echo "0")
-            echo "Total de alertas: $$ALERTS"
-            
-            # Mostrar alertas por tipo para debug
-            echo "=== Alertas por Risk Level ==="
-            curl -s "$$ZAP_API/JSON/core/view/alertsSummary/?baseurl=$$TARGET_URL"
-            
-            # Verificar se SQLi/XSS foram detectados
-            echo ""
-            echo "=== Verificando detecção de SQLi e XSS ==="
-            ALERTS_JSON=$$(curl -s "$$ZAP_API/JSON/core/view/alerts/?baseurl=$$TARGET_URL&start=0&count=1000")
-            echo "$$ALERTS_JSON" | grep -i "sql" | head -3 || echo "Nenhum SQLi encontrado"
-            echo "$$ALERTS_JSON" | grep -i "xss\|cross-site scripting" | head -3 || echo "Nenhum XSS encontrado"
-            
-            ls -la /zap/wrk/zap-auth-*
-            echo "=== Concluído ==="
+        docker run --rm -u 0 -v /workspace/reports:/zap/wrk:rw \
+          -e T="$$TARGET" -e U="${_DVWA_USER}" -e P="${_DVWA_PASS}" \
+          ghcr.io/zaproxy/zaproxy:stable bash -c '
+          API="http://localhost:8090"
+          zap.sh -daemon -port 8090 -config api.disablekey=true &
+          for i in $(seq 1 30); do curl -s "$API/JSON/core/view/version/" >/dev/null && break; sleep 2; done
+          
+          # Login e obter sessão
+          CF=/tmp/c.txt; curl -sc $CF "$T/login.php" -o /dev/null
+          TK=$(curl -sb $CF "$T/login.php" | grep -oE "user_token. value=.[^.]+" | sed "s/.*=.//;s/.$//" | head -1)
+          curl -sLcb $CF -d "username=$U&password=$P&Login=Login&user_token=$TK" "$T/login.php" -o /dev/null
+          SID=$(grep PHPSESSID $CF | awk "{print \$NF}")
+          echo "Session: $SID"
+          
+          # Configurar cookie no ZAP via replacer
+          curl -s "$API/JSON/replacer/action/addRule/?description=auth&enabled=true&matchType=REQ_HEADER&matchRegex=false&matchString=Cookie&replacement=PHPSESSID=$SID;%20security=low&initiators=" -o /dev/null
+          
+          # Acessar URLs vulneráveis
+          for u in /vulnerabilities/sqli/?id=1 /vulnerabilities/xss_r/?name=t /vulnerabilities/exec/?ip=1; do
+            curl -s "$API/JSON/core/action/accessUrl/?url=$T$u&followRedirects=true" -o /dev/null
+          done
+          
+          # Spider
+          curl -s "$API/JSON/spider/action/scan/?url=$T&recurse=true" -o /dev/null
+          for i in $(seq 1 24); do
+            S=$(curl -s "$API/JSON/spider/view/status/?scanId=0" | grep -oP "status...\\K[0-9]+" || echo 0)
+            [ "$S" = "100" ] && break; sleep 5
+          done
+          
+          # Active Scan (10 min max)
+          curl -s "$API/JSON/ascan/action/enableAllScanners/" -o /dev/null
+          curl -s "$API/JSON/ascan/action/scan/?url=$T&recurse=true&inScopeOnly=false" -o /dev/null
+          TIMEOUT=0
+          for i in $(seq 1 60); do
+            S=$(curl -s "$API/JSON/ascan/view/status/?scanId=0" | grep -oP "status...\\K[0-9]+" || echo 0)
+            echo "Active: $S%"
+            [ "$S" = "100" ] && break
+            sleep 10
+            [ $i -eq 60 ] && TIMEOUT=1
+          done
+          
+          # Gerar relatório com flag de timeout
+          ALERTS=$(curl -s "$API/JSON/core/view/alerts/?baseurl=$T&start=0&count=1000")
+          if [ "$TIMEOUT" = "1" ]; then
+            echo "{\"timeout\":true,\"alerts\":$(echo $ALERTS | jq .alerts)}" > /zap/wrk/zap-auth-active-report.json
+          else
+            echo "$ALERTS" > /zap/wrk/zap-auth-active-report.json
+          fi
+          curl -s "$API/OTHER/core/other/htmlreport/" > /zap/wrk/zap-auth-active-report.html
+          echo "Alertas: $(curl -s "$API/JSON/core/view/numberOfAlerts/?baseurl=$T")"
           '
-        
-        echo "=== Verificando relatórios gerados ==="
-        ls -la /workspace/reports/zap-auth-* 2>/dev/null || echo "Nenhum relatório encontrado"
+        ls -la /workspace/reports/zap-auth-* 2>/dev/null || echo "Sem relatorio"
     waitFor:
       - 'zap-scan'
 

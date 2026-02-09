@@ -237,7 +237,8 @@ def validate_zap_coverage(zap_report_path):
         "cwes_missing": [],
         "coverage_score": 0,
         "issues": [],
-        "recommendations": []
+        "recommendations": [],
+        "timeout": False
     }
     
     data = load_json(zap_report_path)
@@ -248,6 +249,12 @@ def validate_zap_coverage(zap_report_path):
     if "error" in data:
         result["issues"].append(f"ZAP retornou erro: {data['error']}")
         return result
+    
+    # Verificar se houve timeout no Active Scan
+    if data.get("timeout", False):
+        result["timeout"] = True
+        result["issues"].append("⏱️ TIMEOUT: O Active Scan não completou em 10 minutos. Os resultados são parciais.")
+        result["recommendations"].append("Considerar aumentar o timeout ou executar o scan localmente para resultados completos")
     
     # Extrair URLs testadas dos alertas
     tested_urls = set()
@@ -1461,6 +1468,18 @@ def generate_report():
     
     report.add(f"**Score de cobertura de injeção:** {zap_coverage['coverage_score']:.1f}%")
     report.add()
+    
+    # Mostrar alerta de timeout se aplicável
+    if zap_coverage.get("timeout", False):
+        report.add("### ⏱️ TIMEOUT - Scan Incompleto")
+        report.add()
+        report.add("**O Active Scan não completou dentro do limite de 10 minutos.** Os resultados abaixo são parciais e podem não refletir todas as vulnerabilidades existentes.")
+        report.add()
+        report.add("*Para um scan completo, considere:*")
+        report.add("- *Executar o ZAP localmente com mais tempo*")
+        report.add("- *Aumentar o timeout na pipeline (pode impactar custos)*")
+        report.add("- *Limitar o escopo do scan a URLs específicas*")
+        report.add()
     
     # Explicação contextual do score
     report.add("*Nota: Este score mede especificamente a detecção de vulnerabilidades de **injeção** (SQLi, XSS, Command Injection) que são o foco do Active Scan. O ZAP Active Scan **detectou outros tipos de vulnerabilidades** (configuração de headers, cookies, CORS, etc.) que são válidas mas não entram neste cálculo específico.*")
