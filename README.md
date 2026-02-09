@@ -12,6 +12,110 @@ Além disso, o projeto propõe a utilização de recursos do Google Cloud Platfo
 
 * [Lesandro Ponciano](https://orcid.org/0000-0002-5724-0094)
 
+---
+
+## 📊 Visão Geral do Pipeline
+
+### Arquitetura do Pipeline (15 Etapas)
+
+```mermaid
+flowchart LR
+    subgraph SHIFT_LEFT["🔍 SHIFT-LEFT"]
+        A[1. Clone] --> B[2. SAST<br/>Semgrep]
+        B --> C[3-4. SCA<br/>Trivy FS]
+        C --> D[5-6. IaC<br/>Checkov]
+    end
+    
+    subgraph BUILD["🔨 BUILD"]
+        D --> E[7. Docker<br/>Build]
+        E --> F[8. Container<br/>Scan]
+        F --> G[9. Push<br/>Registry]
+    end
+    
+    subgraph DEPLOY["🚀 DEPLOY"]
+        G --> H[10. Deploy<br/>GKE]
+        H --> I[11. Setup<br/>DVWA]
+    end
+    
+    subgraph SHIFT_RIGHT["🎯 SHIFT-RIGHT"]
+        I --> J[12. DAST<br/>Baseline]
+        J --> K[13. DAST<br/>Active]
+        K --> L[14. Brute<br/>Force]
+        L --> M[15. Upload<br/>GCS]
+    end
+```
+
+### 6 Camadas de Segurança
+
+```mermaid
+flowchart TB
+    subgraph TOOLS["🛡️ FERRAMENTAS DE SEGURANÇA"]
+        SAST["🔍 SAST<br/>Semgrep<br/>Código PHP/JS"]
+        SCA["📦 SCA<br/>Trivy FS<br/>Dependências"]
+        CONTAINER["🐳 Container<br/>Trivy Image<br/>SO + Pacotes"]
+        IAC["☁️ IaC Scan<br/>Checkov<br/>Terraform/K8s"]
+        DAST["🌐 DAST<br/>OWASP ZAP<br/>Baseline + Active"]
+        AUTH["🔐 Auth<br/>Script Python<br/>Brute Force"]
+    end
+    
+    SAST --> ANALISE
+    SCA --> ANALISE
+    CONTAINER --> ANALISE
+    IAC --> ANALISE
+    DAST --> ANALISE
+    AUTH --> ANALISE
+    
+    ANALISE[("📊 analise.py<br/>1.748 findings")]
+    ANALISE --> RESULT["✅ 13/17 detectadas<br/>76.5% cobertura"]
+```
+
+### Arquitetura GCP
+
+```mermaid
+flowchart TB
+    subgraph GCP["☁️ Google Cloud Platform"]
+        subgraph CICD["CI/CD"]
+            GIT[GitHub] --> |trigger| CB[Cloud Build]
+            CB --> AR[Artifact Registry]
+        end
+        
+        subgraph COMPUTE["Compute"]
+            AR --> GKE[GKE Cluster]
+            GKE --> DVWA[DVWA Pod]
+            GKE --> MYSQL[MySQL Pod]
+        end
+        
+        subgraph STORAGE["Storage"]
+            CB --> GCS[Cloud Storage]
+            GCS --> REPORTS[(Relatórios JSON)]
+        end
+    end
+    
+    DVWA --> ZAP[OWASP ZAP]
+    DVWA --> BF[Brute Force]
+    
+    REPORTS --> ANALISE[analise.py]
+    ANALISE --> MD[Relatório MD]
+```
+
+### Cobertura de Detecção
+
+```mermaid
+pie showData
+    title Cobertura de Vulnerabilidades DVWA (17 total)
+    "Detectadas (13)" : 13
+    "Fora do Escopo (4)" : 4
+```
+
+| Métrica | Valor |
+|---------|-------|
+| **Total de Findings** | 1.748 |
+| **Vulnerabilidades DVWA** | 17 |
+| **Detectadas** | 13 (76,5%) |
+| **Cobertura Ajustada** | 100% |
+
+---
+
 ## Instruções de Replicação/Reprodução
 
 Este projeto pode ser replicado seguindo os passos abaixo:
@@ -187,7 +291,7 @@ gsutil ls gs://devsecops-reports-dvwa/reports-<SHORT_SHA>/
 
 ### Script de Análise de Cobertura (`analise.py`)
 
-Um dos principais diferenciais deste projeto é o **script de análise automatizada** (`Instrumentos/Reports/analise.py`) com **1800+ linhas** de código Python que consolida e interpreta os relatórios de todas as ferramentas de segurança.
+Um dos principais diferenciais deste projeto é o **script de análise automatizada** (`Instrumentos/Reports/analise.py`) em Python que consolida e interpreta os relatórios de todas as ferramentas de segurança.
 
 #### Por que foi criado?
 

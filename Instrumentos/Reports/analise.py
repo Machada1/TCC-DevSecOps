@@ -1396,7 +1396,7 @@ def generate_report():
             report.add_header("Findings de Segurança", 3)
             report.add_table(
                 ["Check ID", "Recurso", "Arquivo", "Severidade"],
-                [[f['check_id'], f['resource'][:30] if f['resource'] else 'N/A', f['file'].split('/')[-1] if f['file'] else 'N/A', f['severity']] for f in checkov['findings'][:20]]
+                [[f['check_id'], f['resource'] if f['resource'] else 'N/A', f['file'].split('/')[-1] if f['file'] else 'N/A', f['severity']] for f in checkov['findings'][:20]]
             )
         else:
             report.add("✅ **NENHUM PROBLEMA DE SEGURANÇA ENCONTRADO NO IaC!**")
@@ -1468,7 +1468,7 @@ def generate_report():
                     v['name'],
                     v['category'],
                     v['cwe'],
-                    v.get('owasp', 'N/A')[:30] if v.get('owasp') else 'N/A',
+                    v.get('owasp', 'N/A') if v.get('owasp') else 'N/A',
                     v.get('motivo', '-'),
                     v.get('sugestao', '-')
                 ]

@@ -1,6 +1,6 @@
 # 📊 Análise Completa dos Relatórios de Segurança - Pipeline DevSecOps
 
-**Data:** 09/02/2026 15:35
+**Data:** 09/02/2026 18:57
 
 **Aplicação:** DVWA (Damn Vulnerable Web Application)
 
@@ -722,26 +722,26 @@
 
 | Check ID | Recurso | Arquivo | Severidade |
 | --- | --- | --- | --- |
-| CKV_GCP_84 | google_artifact_registry_repos | artifact-registry.tf | None |
-| CKV_GCP_70 | google_container_cluster.prima | gke.tf | None |
-| CKV_GCP_65 | google_container_cluster.prima | gke.tf | None |
-| CKV_GCP_13 | google_container_cluster.prima | gke.tf | None |
-| CKV_GCP_20 | google_container_cluster.prima | gke.tf | None |
-| CKV_GCP_25 | google_container_cluster.prima | gke.tf | None |
-| CKV_GCP_66 | google_container_cluster.prima | gke.tf | None |
-| CKV_GCP_21 | google_container_cluster.prima | gke.tf | None |
-| CKV_GCP_12 | google_container_cluster.prima | gke.tf | None |
-| CKV_GCP_64 | google_container_cluster.prima | gke.tf | None |
-| CKV_GCP_69 | google_container_cluster.prima | gke.tf | None |
-| CKV_GCP_61 | google_container_cluster.prima | gke.tf | None |
-| CKV_GCP_68 | google_container_node_pool.pri | gke.tf | None |
-| CKV_GCP_9 | google_container_node_pool.pri | gke.tf | None |
-| CKV_GCP_10 | google_container_node_pool.pri | gke.tf | None |
-| CKV_GCP_69 | google_container_node_pool.pri | gke.tf | None |
-| CKV_GCP_49 | google_project_iam_member.clou | iam.tf | None |
-| CKV_GCP_114 | google_storage_bucket.reports_ | storage.tf | None |
-| CKV_GCP_78 | google_storage_bucket.reports_ | storage.tf | None |
-| CKV_GCP_62 | google_storage_bucket.reports_ | storage.tf | None |
+| CKV_GCP_84 | google_artifact_registry_repository.devsecops_repo | artifact-registry.tf | None |
+| CKV_GCP_70 | google_container_cluster.primary | gke.tf | None |
+| CKV_GCP_65 | google_container_cluster.primary | gke.tf | None |
+| CKV_GCP_13 | google_container_cluster.primary | gke.tf | None |
+| CKV_GCP_20 | google_container_cluster.primary | gke.tf | None |
+| CKV_GCP_25 | google_container_cluster.primary | gke.tf | None |
+| CKV_GCP_66 | google_container_cluster.primary | gke.tf | None |
+| CKV_GCP_21 | google_container_cluster.primary | gke.tf | None |
+| CKV_GCP_12 | google_container_cluster.primary | gke.tf | None |
+| CKV_GCP_64 | google_container_cluster.primary | gke.tf | None |
+| CKV_GCP_69 | google_container_cluster.primary | gke.tf | None |
+| CKV_GCP_61 | google_container_cluster.primary | gke.tf | None |
+| CKV_GCP_68 | google_container_node_pool.primary_nodes | gke.tf | None |
+| CKV_GCP_9 | google_container_node_pool.primary_nodes | gke.tf | None |
+| CKV_GCP_10 | google_container_node_pool.primary_nodes | gke.tf | None |
+| CKV_GCP_69 | google_container_node_pool.primary_nodes | gke.tf | None |
+| CKV_GCP_49 | google_project_iam_member.cloudbuild_builder | iam.tf | None |
+| CKV_GCP_114 | google_storage_bucket.reports_bucket | storage.tf | None |
+| CKV_GCP_78 | google_storage_bucket.reports_bucket | storage.tf | None |
+| CKV_GCP_62 | google_storage_bucket.reports_bucket | storage.tf | None |
 
 
 ## 6. 🔐 Teste de Força Bruta - Hydra
@@ -789,8 +789,8 @@ A aplicação é vulnerável a ataques de força bruta. Credenciais fracas foram
 | --- | --- | --- | --- | --- | --- |
 | File Inclusion (LFI/RFI) | web_application | CWE-98 | A03:2021 - Injection | Requer autenticação e/ou ataque ativo. | Adicionar ZAP autenticado/active scan na pipeline. |
 | File Upload | web_application | CWE-434 | A04:2021 - Insecure Design | Requer autenticação e/ou ataque ativo. | Adicionar ZAP autenticado/active scan na pipeline. |
-| Insecure CAPTCHA | web_application | CWE-804 | A07:2021 - Identification and  | Requer interação humana ou automação avançada. | Fora do escopo do pipeline automatizado. |
-| Authorisation Bypass | web_application | CWE-639 | A01:2021 - Broken Access Contr | Requer autenticação e/ou ataque ativo. | Adicionar ZAP autenticado/active scan na pipeline. |
+| Insecure CAPTCHA | web_application | CWE-804 | A07:2021 - Identification and Authentication Failures | Requer interação humana ou automação avançada. | Fora do escopo do pipeline automatizado. |
+| Authorisation Bypass | web_application | CWE-639 | A01:2021 - Broken Access Control | Requer autenticação e/ou ataque ativo. | Adicionar ZAP autenticado/active scan na pipeline. |
 
 
 ### Resumo da Cobertura
@@ -939,8 +939,8 @@ As seguintes limitações foram identificadas dinamicamente durante a análise:
 **Não detectadas:** 4 (23.5%)
 
 **Motivos para não detecção:**
-- Requer interação humana ou automação avançada.
 - Requer autenticação e/ou ataque ativo.
+- Requer interação humana ou automação avançada.
 
 ### Recomendações Baseadas nos Resultados
 
@@ -953,4 +953,4 @@ As seguintes limitações foram identificadas dinamicamente durante a análise:
 
 ---
 
-*Relatório gerado automaticamente em 09/02/2026 às 15:35:16*
+*Relatório gerado automaticamente em 09/02/2026 às 18:57:14*
