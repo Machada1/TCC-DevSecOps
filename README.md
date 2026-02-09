@@ -133,13 +133,14 @@ gcloud builds submit --config Instrumentos/Codigos/DevSecOps/dvwa/cloudbuild.yam
 | 1 | `pull-dvwa` | Docker | Pull da imagem DVWA pública |
 | 2 | `push-dvwa` | Docker | Tag da imagem para Artifact Registry |
 | 3 | `push` | Docker | Push da imagem para Artifact Registry |
-| 4 | `semgrep` | Semgrep | **SAST** - Análise estática do código |
-| 5 | `sca-scan` | Trivy | **SCA** - Análise de dependências |
+| 4 | `semgrep` | Semgrep | **SAST** - Análise estática do código PHP do DVWA |
+| 5 | `sca-scan` | Trivy | **SCA** - Análise de dependências do código-fonte |
 | 6 | `checkov` | Checkov | **IaC Scan** - Terraform e Kubernetes |
 | 7 | `trivy` | Trivy | **Container Scan** - Análise da imagem |
 | 8 | `deploy-mysql` | kubectl | Deploy do MySQL no GKE |
 | 9 | `deploy` | kubectl | Deploy do DVWA no GKE |
 | 10 | `get-external-ip` | kubectl | Obtém IP externo do LoadBalancer |
+| 10.1 | `setup-dvwa` | curl | Configura DVWA: inicializa DB e define nível LOW |
 | 11 | `zap-scan` | OWASP ZAP | **DAST** - Baseline Scan (não autenticado) |
 | 12 | `zap-auth-active-scan` | OWASP ZAP | **DAST** - Active Scan autenticado (SQLi, XSS) |
 | 13 | `bruteforce-attack` | Python Script | **Brute Force** - Teste com suporte a CSRF token |
@@ -194,6 +195,8 @@ O projeto inclui um script Python (`Instrumentos/Reports/analise.py`) que realiz
 - Mapeia vulnerabilidades detectadas para as categorias conhecidas do DVWA
 - Calcula cobertura de detecção por ferramenta e categoria
 - Identifica gaps (vulnerabilidades não detectadas)
+- **Valida cobertura do ZAP Active Scan** (CWEs detectados vs esperados)
+- **Detecta limitações dinamicamente** (código-fonte ausente, falhas de autenticação, etc.)
 - Gera sugestões de melhoria para o pipeline
 
 **Execução:**
@@ -208,6 +211,8 @@ python analise.py
   - Análise por ferramenta (Trivy, Semgrep, Checkov, ZAP, Hydra)
   - Cobertura das vulnerabilidades do DVWA
   - Matriz de detecção (vulnerabilidade × ferramenta)
+  - **Validação da cobertura do ZAP Active Scan**
+  - **Limitações identificadas na análise**
   - Recomendações para aumentar cobertura
 
 **Vulnerabilidades DVWA mapeadas:**
@@ -215,6 +220,15 @@ python analise.py
 - File Inclusion (LFI/RFI), File Upload, CSRF
 - Weak Session IDs, Brute Force, Insecure CAPTCHA
 - Open HTTP Redirect, JavaScript Attacks, CSP Bypass, Authorization Bypass
+
+
+### Código-Fonte do DVWA
+
+O repositório inclui o código-fonte do DVWA em `Instrumentos/Codigos/DevSecOps/dvwa/src/` para permitir análise SAST e SCA completa:
+
+- **Semgrep** analisa o código PHP com regras específicas (`p/php`, `p/security-audit`, `p/owasp-top-ten`)
+- **Trivy SCA** analisa dependências e secrets no código-fonte
+- O código-fonte foi obtido do repositório oficial: https://github.com/digininja/DVWA
 
 
 ### Observações
@@ -253,6 +267,7 @@ O script customizado:
 │   │   └── DevSecOps/
 │   │       ├── dvwa/
 │   │       │   ├── cloudbuild.yaml  # Pipeline CI/CD principal
+│   │       │   ├── src/             # Código-fonte do DVWA (para SAST/SCA)
 │   │       │   └── k8s/             # Manifests Kubernetes (DVWA, MySQL)
 │   │       ├── dvwa-bruteforce.py   # Script de brute force com CSRF
 │   │       └── infra/               # Terraform (GKE, VPC, IAM, etc.)
@@ -269,15 +284,15 @@ O script customizado:
 
 | Categoria | Ferramenta | Descrição |
 |-----------|------------|-----------|
-| **SAST** | Semgrep | Análise estática de código-fonte |
-| **SCA** | Trivy | Análise de dependências e composição |
+| **SAST** | Semgrep | Análise estática de código PHP (regras OWASP Top 10) |
+| **SCA** | Trivy | Análise de dependências e secrets no código-fonte |
 | **Container Scan** | Trivy | Análise de vulnerabilidades em imagens Docker |
 | **IaC Scan** | Checkov | Análise de infraestrutura como código (Terraform, K8s) |
-| **DAST** | OWASP ZAP | Testes dinâmicos de segurança (full scan e autenticado) |
+| **DAST** | OWASP ZAP | Testes dinâmicos de segurança (baseline e active scan autenticado) |
 | **Brute Force** | Python (Custom) | Testes de força bruta com suporte a CSRF token |
 | **Infra** | Terraform | Provisionamento de infraestrutura no GCP |
 | **CI/CD** | Cloud Build | Pipeline de integração e entrega contínua |
 | **Container** | GKE | Orquestração de containers Kubernetes |
-| **Análise** | Python | Script de análise e geração de relatórios |
+| **Análise** | Python | Script de análise, validação e geração de relatórios |
 
 

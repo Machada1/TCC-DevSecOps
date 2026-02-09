@@ -5,13 +5,14 @@ ANÁLISE COMPLETA DOS RELATÓRIOS DE SEGURANÇA - PIPELINE DEVSECOPS
 ================================================================================
 Pesquisa: Integração de Testes de Segurança Contínuos em Pipelines CI/CD
 Aplicação alvo: DVWA (Damn Vulnerable Web Application)
-Data de execução: Dezembro 2025
+Data de execução: Fevereiro 2026
 ================================================================================
 """
 import json
 import os
 from collections import defaultdict
 from datetime import datetime
+from pathlib import Path
 
 # ============================================================================
 # VULNERABILIDADES CONHECIDAS DO DVWA
@@ -131,6 +132,262 @@ def load_json(filepath):
     except (FileNotFoundError, json.JSONDecodeError) as e:
         print(f"[AVISO] Não foi possível carregar {filepath}: {e}")
         return None
+
+
+# ============================================================================
+# VALIDAÇÃO DE COBERTURA DO ZAP
+# ============================================================================
+
+# URLs vulneráveis esperadas no DVWA que o ZAP deveria testar
+DVWA_VULNERABLE_URLS = [
+    "/vulnerabilities/sqli/",
+    "/vulnerabilities/sqli_blind/",
+    "/vulnerabilities/xss_r/",
+    "/vulnerabilities/xss_s/",
+    "/vulnerabilities/xss_d/",
+    "/vulnerabilities/exec/",
+    "/vulnerabilities/fi/",
+    "/vulnerabilities/upload/",
+    "/vulnerabilities/csrf/",
+    "/vulnerabilities/brute/",
+    "/vulnerabilities/captcha/",
+    "/vulnerabilities/weak_id/",
+]
+
+# CWEs que o ZAP Active Scan deveria detectar no DVWA em nível LOW
+EXPECTED_ZAP_CWES = {
+    89: {"name": "SQL Injection", "required": True, "urls": ["/sqli/", "/sqli_blind/"]},
+    79: {"name": "Cross-Site Scripting (XSS)", "required": True, "urls": ["/xss_r/", "/xss_s/", "/xss_d/"]},
+    78: {"name": "OS Command Injection", "required": True, "urls": ["/exec/"]},
+    22: {"name": "Path Traversal", "required": False, "urls": ["/fi/"]},
+    98: {"name": "Improper Control of Filename for Include", "required": False, "urls": ["/fi/"]},
+    352: {"name": "Cross-Site Request Forgery (CSRF)", "required": False, "urls": ["/csrf/"]},
+}
+
+
+def validate_zap_coverage(zap_report_path):
+    """
+    Valida se o ZAP está testando as URLs vulneráveis do DVWA
+    e detectando as vulnerabilidades esperadas.
+    
+    Retorna um dicionário com:
+    - urls_tested: URLs do DVWA que foram testadas
+    - urls_missing: URLs do DVWA que não foram testadas
+    - cwes_detected: CWEs detectados
+    - cwes_missing: CWEs esperados mas não detectados
+    - coverage_score: Percentual de cobertura
+    - issues: Lista de problemas identificados
+    """
+    result = {
+        "urls_tested": [],
+        "urls_missing": [],
+        "cwes_detected": [],
+        "cwes_missing": [],
+        "coverage_score": 0,
+        "issues": [],
+        "recommendations": []
+    }
+    
+    data = load_json(zap_report_path)
+    if not data:
+        result["issues"].append("Relatório ZAP não encontrado ou inválido")
+        return result
+    
+    if "error" in data:
+        result["issues"].append(f"ZAP retornou erro: {data['error']}")
+        return result
+    
+    # Extrair URLs testadas dos alertas
+    tested_urls = set()
+    detected_cwes = set()
+    
+    # Formato da API REST: {"alerts": [...]}
+    alerts = data.get("alerts", [])
+    if not alerts:
+        # Tentar formato do report HTML/JSON tradicional
+        for site in data.get("site", []):
+            for alert in site.get("alerts", []):
+                for instance in alert.get("instances", []):
+                    url = instance.get("uri", "")
+                    if url:
+                        tested_urls.add(url)
+                cwe = alert.get("cweid", "")
+                if cwe:
+                    detected_cwes.add(int(cwe))
+    else:
+        for alert in alerts:
+            url = alert.get("url", "")
+            if url:
+                tested_urls.add(url)
+            cwe = alert.get("cweid", "")
+            if cwe:
+                try:
+                    detected_cwes.add(int(cwe))
+                except ValueError:
+                    pass
+    
+    # Verificar quais URLs vulneráveis foram testadas
+    for vuln_url in DVWA_VULNERABLE_URLS:
+        found = any(vuln_url in url for url in tested_urls)
+        if found:
+            result["urls_tested"].append(vuln_url)
+        else:
+            result["urls_missing"].append(vuln_url)
+    
+    # Verificar CWEs detectados vs esperados
+    for cwe_id, cwe_info in EXPECTED_ZAP_CWES.items():
+        if cwe_id in detected_cwes:
+            result["cwes_detected"].append({
+                "cwe": f"CWE-{cwe_id}",
+                "name": cwe_info["name"],
+                "required": cwe_info["required"]
+            })
+        else:
+            result["cwes_missing"].append({
+                "cwe": f"CWE-{cwe_id}",
+                "name": cwe_info["name"],
+                "required": cwe_info["required"],
+                "expected_urls": cwe_info["urls"]
+            })
+    
+    # Calcular score de cobertura
+    total_expected = len(EXPECTED_ZAP_CWES)
+    total_detected = len(result["cwes_detected"])
+    result["coverage_score"] = (total_detected / total_expected * 100) if total_expected > 0 else 0
+    
+    # Identificar problemas
+    required_missing = [c for c in result["cwes_missing"] if c["required"]]
+    if required_missing:
+        result["issues"].append(
+            f"Vulnerabilidades críticas não detectadas: {', '.join(c['name'] for c in required_missing)}"
+        )
+        result["recommendations"].append(
+            "Verificar se o DVWA está configurado em nível 'Low'"
+        )
+        result["recommendations"].append(
+            "Verificar se o ZAP está autenticando corretamente no DVWA"
+        )
+    
+    if result["urls_missing"]:
+        result["issues"].append(
+            f"{len(result['urls_missing'])} URLs vulneráveis não foram testadas"
+        )
+        result["recommendations"].append(
+            "Verificar se o Spider está alcançando todas as páginas"
+        )
+    
+    return result
+
+
+def detect_analysis_limitations():
+    """
+    Detecta dinamicamente as limitações da análise baseado nos arquivos disponíveis.
+    
+    Retorna um dicionário com limitações identificadas por ferramenta.
+    """
+    limitations = {
+        "sast": [],
+        "sca": [],
+        "dast": [],
+        "iac": [],
+        "container": [],
+        "bruteforce": []
+    }
+    
+    # Verificar se há código-fonte PHP para SAST
+    dvwa_src_path = Path(__file__).parent.parent / "Codigos" / "DevSecOps" / "dvwa" / "src"
+    if not dvwa_src_path.exists():
+        limitations["sast"].append({
+            "issue": "Código-fonte do DVWA não está presente no repositório",
+            "impact": "Semgrep não pode analisar o código PHP da aplicação",
+            "recommendation": "Clonar o código-fonte do DVWA para dvwa/src/"
+        })
+    else:
+        # Verificar se tem arquivos PHP
+        php_files = list(dvwa_src_path.glob("**/*.php"))
+        if len(php_files) == 0:
+            limitations["sast"].append({
+                "issue": "Nenhum arquivo PHP encontrado no código-fonte",
+                "impact": "Análise SAST será limitada",
+                "recommendation": "Verificar se o DVWA foi clonado corretamente"
+            })
+    
+    # Verificar relatório Semgrep
+    semgrep_data = load_json("semgrep-report.json")
+    if semgrep_data:
+        findings_count = len(semgrep_data.get("results", []))
+        if findings_count == 0:
+            limitations["sast"].append({
+                "issue": "Semgrep não encontrou vulnerabilidades",
+                "impact": "Pode indicar falta de código para analisar ou regras inadequadas",
+                "recommendation": "Verificar se o Semgrep está apontando para o código-fonte correto"
+            })
+    
+    # Verificar relatório Trivy SCA
+    trivy_sca_data = load_json("trivy-sca-report.json")
+    if trivy_sca_data:
+        results = trivy_sca_data.get("Results", [])
+        total_vulns = sum(len(r.get("Vulnerabilities", [])) for r in results)
+        if total_vulns == 0:
+            limitations["sca"].append({
+                "issue": "Trivy SCA não encontrou vulnerabilidades em dependências",
+                "impact": "Pode indicar ausência de arquivos de dependência (composer.json, etc.)",
+                "recommendation": "Verificar se o Trivy está analisando o diretório correto com dependências"
+            })
+    
+    # Verificar relatórios ZAP
+    zap_baseline = load_json("zap-report.json")
+    zap_active = load_json("zap-auth-active-report.json")
+    
+    if zap_baseline and "error" in zap_baseline:
+        limitations["dast"].append({
+            "issue": f"ZAP Baseline falhou: {zap_baseline['error']}",
+            "impact": "Sem análise de segurança dinâmica básica",
+            "recommendation": "Verificar conectividade e disponibilidade do DVWA"
+        })
+    
+    if zap_active:
+        if "error" in zap_active:
+            limitations["dast"].append({
+                "issue": f"ZAP Active Scan falhou: {zap_active['error']}",
+                "impact": "Sem detecção de SQLi, XSS e outras vulnerabilidades de injeção",
+                "recommendation": "Verificar autenticação e configuração do ZAP"
+            })
+        else:
+            # Validar cobertura
+            coverage = validate_zap_coverage("zap-auth-active-report.json")
+            if coverage["coverage_score"] < 50:
+                limitations["dast"].append({
+                    "issue": f"Cobertura do ZAP Active Scan baixa ({coverage['coverage_score']:.1f}%)",
+                    "impact": "Muitas vulnerabilidades conhecidas do DVWA não foram detectadas",
+                    "recommendation": "; ".join(coverage["recommendations"]) if coverage["recommendations"] else "Revisar configuração do ZAP"
+                })
+    else:
+        limitations["dast"].append({
+            "issue": "Relatório do ZAP Active Scan não encontrado",
+            "impact": "Sem detecção ativa de vulnerabilidades web",
+            "recommendation": "Verificar se o step zap-auth-active-scan foi executado"
+        })
+    
+    # Verificar Checkov
+    checkov_data = load_json("checkov-report.json")
+    if not checkov_data:
+        limitations["iac"].append({
+            "issue": "Relatório Checkov não encontrado",
+            "impact": "Sem análise de segurança de IaC (Terraform/Kubernetes)",
+            "recommendation": "Verificar se o Checkov foi executado corretamente"
+        })
+    
+    # Verificar Brute Force
+    hydra_data = load_json("hydra-bruteforce.json")
+    if hydra_data and "error" in hydra_data:
+        limitations["bruteforce"].append({
+            "issue": f"Teste de brute force falhou: {hydra_data['error']}",
+            "impact": "Não foi possível testar resistência a ataques de força bruta",
+            "recommendation": "Verificar conectividade e script de brute force"
+        })
+    
+    return limitations
 
 
 def analyze_trivy_container():
@@ -1075,6 +1332,88 @@ def generate_report():
         sugestoes = set(v['sugestao'] for v in coverage['not_detected'] if v['sugestao'] and v['sugestao'] != '-')
         for s in sugestoes:
             report.add(f"- {s}")
+        report.add()
+    
+    # ========================================================================
+    # SEÇÃO 7.1: VALIDAÇÃO DA COBERTURA DO ZAP ACTIVE SCAN
+    # ========================================================================
+    report.add_header("7.1 🔬 Validação da Cobertura do ZAP Active Scan", 2)
+    
+    zap_coverage = validate_zap_coverage("zap-auth-active-report.json")
+    
+    report.add(f"**Score de cobertura:** {zap_coverage['coverage_score']:.1f}%")
+    report.add()
+    
+    if zap_coverage["cwes_detected"]:
+        report.add_header("CWEs Detectados pelo Active Scan", 3)
+        report.add_table(
+            ["CWE", "Vulnerabilidade", "Crítico"],
+            [[c["cwe"], c["name"], "✅ Sim" if c["required"] else "Não"] for c in zap_coverage["cwes_detected"]]
+        )
+    
+    if zap_coverage["cwes_missing"]:
+        report.add_header("CWEs Esperados mas Não Detectados", 3)
+        report.add_table(
+            ["CWE", "Vulnerabilidade", "Crítico", "URLs Esperadas"],
+            [[c["cwe"], c["name"], "⚠️ Sim" if c["required"] else "Não", ", ".join(c["expected_urls"])] for c in zap_coverage["cwes_missing"]]
+        )
+    
+    if zap_coverage["urls_tested"]:
+        report.add_header("URLs Vulneráveis Testadas", 3)
+        for url in zap_coverage["urls_tested"][:10]:  # Limitar a 10
+            report.add(f"- ✅ `{url}`")
+        report.add()
+    
+    if zap_coverage["urls_missing"]:
+        report.add_header("URLs Vulneráveis Não Testadas", 3)
+        for url in zap_coverage["urls_missing"]:
+            report.add(f"- ❌ `{url}`")
+        report.add()
+    
+    if zap_coverage["issues"]:
+        report.add_header("Problemas Identificados", 3)
+        for issue in zap_coverage["issues"]:
+            report.add(f"- ⚠️ {issue}")
+        report.add()
+    
+    if zap_coverage["recommendations"]:
+        report.add_header("Recomendações para Melhorar Cobertura DAST", 3)
+        for rec in zap_coverage["recommendations"]:
+            report.add(f"- 💡 {rec}")
+        report.add()
+    
+    # ========================================================================
+    # SEÇÃO 7.2: LIMITAÇÕES IDENTIFICADAS NA ANÁLISE
+    # ========================================================================
+    report.add_header("7.2 ⚠️ Limitações Identificadas na Análise", 2)
+    
+    limitations = detect_analysis_limitations()
+    has_limitations = any(lims for lims in limitations.values())
+    
+    if has_limitations:
+        report.add("As seguintes limitações foram identificadas dinamicamente durante a análise:")
+        report.add()
+        
+        category_names = {
+            "sast": "SAST (Análise Estática)",
+            "sca": "SCA (Análise de Composição)",
+            "dast": "DAST (Análise Dinâmica)",
+            "iac": "IaC (Infraestrutura como Código)",
+            "container": "Container Scan",
+            "bruteforce": "Teste de Força Bruta"
+        }
+        
+        for category, lims in limitations.items():
+            if lims:
+                report.add_header(category_names.get(category, category), 3)
+                for lim in lims:
+                    report.add(f"**Problema:** {lim['issue']}")
+                    report.add()
+                    report.add(f"- **Impacto:** {lim['impact']}")
+                    report.add(f"- **Recomendação:** {lim['recommendation']}")
+                    report.add()
+    else:
+        report.add("✅ Nenhuma limitação significativa identificada na análise.")
         report.add()
     
     # ========================================================================

@@ -49,17 +49,23 @@ steps:
       - '${_REGION}-docker.pkg.dev/${_PROJECT_ID}/${_ARTIFACT_REPO}/${_APP_NAME}:$SHORT_SHA'
     waitFor: ['push-dvwa']
     
-  # 3 SAST com Semgrep (análise estática)
+  # 3 SAST com Semgrep (análise estática do código PHP do DVWA)
   - name: 'returntocorp/semgrep:latest'
     id: 'semgrep'
     entrypoint: 'semgrep'
     args:
       - '--config'
       - 'auto'
+      - '--config'
+      - 'p/php'              # Regras específicas PHP
+      - '--config'
+      - 'p/security-audit'   # Auditoria de segurança
+      - '--config'
+      - 'p/owasp-top-ten'    # OWASP Top 10
       - '--json'
       - '--output'
       - '/workspace/reports/semgrep-report.json'
-      - '.'
+      - 'Instrumentos/Codigos/DevSecOps/dvwa/src'  # Código-fonte DVWA
     waitFor:
       - 'push'
 
@@ -83,15 +89,18 @@ steps:
   #     - 'push'
   
   # Alternativa: Trivy FS para SCA (mais rápido, usa base própria)
+  # Analisa código-fonte DVWA para encontrar dependências vulneráveis
   - name: 'aquasec/trivy'
     id: 'sca-scan'
     args:
       - 'fs'
+      - '--scanners'
+      - 'vuln,secret'        # Analisa vulnerabilidades e secrets
       - '--format'
       - 'json'
       - '--output'
       - '/workspace/reports/trivy-sca-report.json'
-      - '.'
+      - 'Instrumentos/Codigos/DevSecOps/dvwa/src'  # Código-fonte DVWA
     waitFor:
       - 'push'
 
@@ -186,6 +195,84 @@ steps:
     waitFor:
       - 'deploy'
 
+  # 9.1 Configurar DVWA - Inicializar DB e definir nível de segurança LOW
+  # Necessário para que as vulnerabilidades sejam detectáveis pelo DAST
+  - name: 'curlimages/curl:latest'
+    id: 'setup-dvwa'
+    entrypoint: 'sh'
+    args:
+      - '-c'
+      - |
+        EXTERNAL_IP=$$(cat /workspace/external_ip.txt)
+        if [ "$$EXTERNAL_IP" = "UNAVAILABLE" ]; then
+          echo "IP não disponível, pulando setup do DVWA"
+          exit 0
+        fi
+        
+        TARGET="http://$$EXTERNAL_IP"
+        echo "=== Configurando DVWA em $$TARGET ==="
+        
+        # Aguardar DVWA inicializar
+        echo "Aguardando DVWA ficar disponível..."
+        for i in 1 2 3 4 5 6 7 8 9 10 11 12; do
+          if curl -s --connect-timeout 5 "$$TARGET" > /dev/null 2>&1; then
+            echo "DVWA acessível!"
+            break
+          fi
+          echo "Tentativa $$i/12..."
+          sleep 10
+        done
+        
+        # 1. Inicializar banco de dados
+        echo "=== Inicializando banco de dados ==="
+        curl -s "$$TARGET/setup.php" -o /dev/null
+        curl -s -X POST "$$TARGET/setup.php" -d "create_db=Create+/+Reset+Database" -o /dev/null
+        sleep 5
+        
+        # 2. Fazer login para obter sessão
+        echo "=== Fazendo login ==="
+        COOKIE_FILE="/tmp/dvwa_cookies.txt"
+        
+        # Obter página de login e token CSRF
+        LOGIN_PAGE=$$(curl -s -c "$$COOKIE_FILE" "$$TARGET/login.php")
+        TOKEN=$$(echo "$$LOGIN_PAGE" | grep -oE "user_token' value='[^']+'" | sed "s/user_token' value='//;s/'//")
+        
+        if [ -z "$$TOKEN" ]; then
+          echo "AVISO: Não foi possível obter token CSRF"
+          TOKEN="dummy"
+        fi
+        echo "Token CSRF: $$TOKEN"
+        
+        # Fazer login
+        curl -s -L -c "$$COOKIE_FILE" -b "$$COOKIE_FILE" \
+          -d "username=admin&password=password&Login=Login&user_token=$$TOKEN" \
+          "$$TARGET/login.php" -o /dev/null
+        
+        # 3. Configurar nível de segurança para LOW
+        echo "=== Configurando nível LOW ==="
+        SEC_PAGE=$$(curl -s -b "$$COOKIE_FILE" "$$TARGET/security.php")
+        SEC_TOKEN=$$(echo "$$SEC_PAGE" | grep -oE "user_token' value='[^']+'" | sed "s/user_token' value='//;s/'//")
+        
+        if [ -z "$$SEC_TOKEN" ]; then
+          SEC_TOKEN="$$TOKEN"
+        fi
+        
+        curl -s -b "$$COOKIE_FILE" \
+          -d "security=low&seclev_submit=Submit&user_token=$$SEC_TOKEN" \
+          "$$TARGET/security.php" -o /dev/null
+        
+        # Verificar configuração
+        VERIFY=$$(curl -s -b "$$COOKIE_FILE" "$$TARGET/security.php")
+        if echo "$$VERIFY" | grep -q "selected.*low\|low.*selected"; then
+          echo "✅ DVWA configurado para nível LOW"
+        else
+          echo "⚠️ Não foi possível confirmar nível LOW"
+        fi
+        
+        echo "=== Setup do DVWA concluído ==="
+    waitFor:
+      - 'get-external-ip'
+
   # 10 DAST com OWASP ZAP (testes dinâmicos de segurança)
   # NOTA: Usa docker para montar /workspace/reports como /zap/wrk
   - name: 'gcr.io/cloud-builders/docker'
@@ -225,7 +312,7 @@ steps:
         echo "Scan ZAP concluído"
         ls -la /workspace/reports/zap* 2>/dev/null || echo "Nenhum relatório ZAP encontrado"
     waitFor:
-      - 'get-external-ip'
+      - 'setup-dvwa'
 
   # 11 ZAP autenticado + active scan (usando docker run com root para ter permissão de escrita)
   - name: 'gcr.io/cloud-builders/docker'
@@ -280,9 +367,46 @@ steps:
             fi
             
             echo "=== Login no DVWA ==="
-            curl -s -c /tmp/cookies.txt -b /tmp/cookies.txt \
-              -d "username=$$DVWA_USER&password=$$DVWA_PASS&Login=Login" \
+            # Obter página de login para pegar CSRF token
+            LOGIN_PAGE=$$(curl -s -c /tmp/cookies.txt "$$TARGET_URL/login.php")
+            CSRF_TOKEN=$$(echo "$$LOGIN_PAGE" | grep -oE "user_token. value=.[^.]+" | head -1 | sed "s/.*value=.//;s/.$$//")
+            echo "CSRF Token: $$CSRF_TOKEN"
+            
+            # Fazer login com token CSRF
+            curl -s -L -c /tmp/cookies.txt -b /tmp/cookies.txt \
+              -d "username=$$DVWA_USER&password=$$DVWA_PASS&Login=Login&user_token=$$CSRF_TOKEN" \
               "$$TARGET_URL/login.php" -o /dev/null
+            
+            # Verificar login
+            INDEX=$$(curl -s -b /tmp/cookies.txt "$$TARGET_URL/index.php")
+            if echo "$$INDEX" | grep -q "Welcome"; then
+              echo "✅ Login bem-sucedido!"
+            else
+              echo "⚠️ Login pode ter falhado"
+            fi
+            
+            echo "=== Acessando URLs vulneráveis do DVWA ==="
+            # Acessar cada página vulnerável para o Spider indexar
+            VULN_URLS="
+              /vulnerabilities/sqli/?id=1&Submit=Submit
+              /vulnerabilities/sqli_blind/?id=1&Submit=Submit
+              /vulnerabilities/xss_r/?name=test
+              /vulnerabilities/xss_s/
+              /vulnerabilities/exec/?ip=127.0.0.1&Submit=Submit
+              /vulnerabilities/fi/?page=include.php
+              /vulnerabilities/upload/
+              /vulnerabilities/csrf/
+              /vulnerabilities/brute/
+              /vulnerabilities/captcha/
+              /vulnerabilities/weak_id/
+            "
+            
+            for url in $$VULN_URLS; do
+              echo "Acessando: $$TARGET_URL$$url"
+              curl -s -b /tmp/cookies.txt "$$TARGET_URL$$url" -o /dev/null
+              # Informar ZAP sobre a URL
+              curl -s "$$ZAP_API/JSON/core/action/accessUrl/?url=$$TARGET_URL$$url&followRedirects=true" -o /dev/null
+            done
             
             echo "=== Executando Spider ==="
             SPIDER_RESP=$$(curl -s "$$ZAP_API/JSON/spider/action/scan/?url=$$TARGET_URL&recurse=true")
