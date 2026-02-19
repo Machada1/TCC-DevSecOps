@@ -8,17 +8,17 @@ Os fichamentos apresentam a análise, conceitos principais e citações extraíd
 ## Lista de Artigos e Fichamentos
 
 1. **Integrating Security with DevSecOps: Techniques and Challenges**  
-   [Fichamento disponível aqui](https://github.com/ICEI-PUC-Minas-PCO-SI/pco-si-2025-2-tipesq-3157101-devsecops-guilherme-machado/blob/master/Fichamentos/Fichamento-Integrating%20Security%20with%20DevSecOps%3A%20Techniques%20and%20Challenges.md)
+   [Fichamento disponível aqui](https://github.com/Machada1/TCC-DevSecOps/blob/main/Fichamentos/Fichamento-Integrating%20Security%20with%20DevSecOps%3A%20Techniques%20and%20Challenges.md)
 
 2. **Implementing and Automating Security Scanning to a DevSecOps CI/CD Pipeline**  
-   [Fichamento disponível aqui](https://github.com/ICEI-PUC-Minas-PCO-SI/pco-si-2025-2-tipesq-3157101-devsecops-guilherme-machado/blob/master/Fichamentos/Fichamento-Implementing%20and%20Automating%20Security%20Scanning%20to%20a%20DevSecOps%20CICD%20Pipeline.md)
+   [Fichamento disponível aqui](https://github.com/Machada1/TCC-DevSecOps/blob/main/Fichamentos/Fichamento-Implementing%20and%20Automating%20Security%20Scanning%20to%20a%20DevSecOps%20CICD%20Pipeline.md)
 
 3. **Implementation of DevSecOps by Integrating Static and Dynamic Security Testing in CI/CD Pipelines**  
-   [Fichamento disponível aqui](https://github.com/ICEI-PUC-Minas-PCO-SI/pco-si-2025-2-tipesq-3157101-devsecops-guilherme-machado/blob/master/Fichamentos/Fichamento-Implementation%20of%20DevSecOps%20by%20Integrating%20Static%20and%20Dynamic%20Security%20Testing%20in%20CICD%20PipelinesCD%20Pipelines.md)
+   [Fichamento disponível aqui](https://github.com/Machada1/TCC-DevSecOps/blob/main/Fichamentos/Fichamento-Implementation%20of%20DevSecOps%20by%20Integrating%20Static%20and%20Dynamic%20Security%20Testing%20in%20CICD%20PipelinesCD%20Pipelines.md)
 
 4. **An Empirical Study of DevSecOps Focused on Continuous Security Testing**
-   [Fichamento disponível aqui](https://github.com/ICEI-PUC-Minas-PCO-SI/pco-si-2025-2-tipesq-3157101-devsecops-guilherme-machado/blob/master/Fichamentos/Fichamento-An%20Empirical%20Study%20of%20DevSecOps%20Focused%20on%20Continuous%20Security%20Testing.md)
+   [Fichamento disponível aqui](https://github.com/Machada1/TCC-DevSecOps/blob/main/Fichamentos/Fichamento-An%20Empirical%20Study%20of%20DevSecOps%20Focused%20on%20Continuous%20Security%20Testing.md)
 
 5. **Continuous Security Testing: A Case Study on Integrating Dynamic Security Testing Tools in CI/CD Pipelines**
-   [Fichamento disponível aqui](https://github.com/ICEI-PUC-Minas-PCO-SI/pco-si-2025-2-tipesq-3157101-devsecops-guilherme-machado/blob/master/Fichamentos/Fichamento-Continuous%20Security%20Testing%3A%20A%20Case%20Study%20on%20Integrating%20Dynamic%20Security%20Testing%20Tools%20in%20CICD%20Pipelines.md)
+   [Fichamento disponível aqui](https://github.com/Machada1/TCC-DevSecOps/blob/main/Fichamentos/Fichamento-Continuous%20Security%20Testing%3A%20A%20Case%20Study%20on%20Integrating%20Dynamic%20Security%20Testing%20Tools%20in%20CICD%20Pipelines.md)
 
