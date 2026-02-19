@@ -12,7 +12,10 @@
 
 **Período de Continuação:** 2026/1 (Trabalho de Conclusão de Curso)
 
-**Orientador TIPI:** Prof. Lesandro Ponciano
+**Orientador do TCC:** Prof. Fabio Cordeiro
+
+**Orientador da Pesquisa (TIPI):** Prof. Lesandro Ponciano
+
 
 ---
 
