@@ -10,7 +10,8 @@ Além disso, o projeto propõe a utilização de recursos do Google Cloud Platfo
 
 ## Professores responsáveis
 
-* [Lesandro Ponciano](https://orcid.org/0000-0002-5724-0094)
+* **Orientador do TCC:** Fabio Cordeiro
+* **Orientador da Pesquisa (TIPI):** [Lesandro Ponciano](https://orcid.org/0000-0002-5724-0094)
 
 ---
 
