@@ -1,5 +1,10 @@
 # Documentação e Evolução
 
+![GCP](https://img.shields.io/badge/Google_Cloud-4285F4?style=for-the-badge&logo=google-cloud&logoColor=white)
+![Kubernetes](https://img.shields.io/badge/kubernetes-326ce5.svg?style=for-the-badge&logo=kubernetes&logoColor=white)
+![Terraform](https://img.shields.io/badge/terraform-%235835CC.svg?style=for-the-badge&logo=terraform&logoColor=white)
+![Python](https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54)
+
 Esta pasta centraliza o histórico documental e as fases de escrita acadêmica deste projeto. O objetivo é registrar de forma transparente a evolução da pesquisa, desde as definições iniciais na disciplina de **TIPI (Trabalho de Iniciação à Pesquisa em Informática)** até a consolidação da primeira e demais versões do **TCC (Trabalho de Conclusão de Curso)** na **PUC Minas**.
 
 O projeto propõe a implementação de um pipeline automatizado de **DevSecOps** na **Google Cloud Platform (GCP)**, integrando ferramentas de análise estática e dinâmica para mitigar riscos de segurança e centralizar a gestão de vulnerabilidades.
